@@ -1,9 +1,10 @@
-from .planner import Planner, save_model 
+from .planner import Planner, save_model
 import torch
 import torch.utils.tensorboard as tb
 import numpy as np
 from .utils import load_data
 from . import dense_transforms
+
 
 def train(args):
     from os import path
@@ -19,6 +20,7 @@ def train(args):
 
     save_model(model)
 
+
 def log(logger, img, label, pred, global_step):
     """
     logger: train_logger/valid_logger
@@ -31,11 +33,12 @@ def log(logger, img, label, pred, global_step):
     import torchvision.transforms.functional as TF
     fig, ax = plt.subplots(1, 1)
     ax.imshow(TF.to_pil_image(img[0].cpu()))
-    WH2 = np.array([img.size(-1), img.size(-2)])/2
-    ax.add_artist(plt.Circle(WH2*(label[0].cpu().detach().numpy()+1), 2, ec='g', fill=False, lw=1.5))
-    ax.add_artist(plt.Circle(WH2*(pred[0].cpu().detach().numpy()+1), 2, ec='r', fill=False, lw=1.5))
+    WH2 = np.array([img.size(-1), img.size(-2)]) / 2
+    ax.add_artist(plt.Circle(WH2 * (label[0].cpu().detach().numpy() + 1), 2, ec='g', fill=False, lw=1.5))
+    ax.add_artist(plt.Circle(WH2 * (pred[0].cpu().detach().numpy() + 1), 2, ec='r', fill=False, lw=1.5))
     logger.add_figure('viz', fig, global_step)
     del ax, fig
+
 
 if __name__ == '__main__':
     import argparse

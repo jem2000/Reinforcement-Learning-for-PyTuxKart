@@ -16,30 +16,27 @@ def spatial_argmax(logit):
 class Planner(torch.nn.Module):
     def __init__(self):
 
-      super().__init__()
+        super().__init__()
 
-      layers = []
-      ic = 3
-      structure = [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, \
-      512, 'M', 512, 512, 512, 'M']
-      for l in structure:
-        if l == 'M':
-          layers.append(torch.nn.MaxPool2d(kernel_size=2, stride=2))
-        else:
-          layers.append(torch.nn.Conv2d(in_channels=ic, out_channels=l, padding=1, kernel_size=3, stride=1))
-          layers.append(torch.nn.BatchNorm2d(l))
-          layers.append(torch.nn.ReLU(inplace=True))
-          ic = l
+        layers = []
+        ic = 3
+        structure = [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']
+        for l in structure:
+            if l == 'M':
+                layers.append(torch.nn.MaxPool2d(kernel_size=2, stride=2))
+            else:
+                layers.append(torch.nn.Conv2d(in_channels=ic, out_channels=l, padding=1, kernel_size=3, stride=1))
+                layers.append(torch.nn.BatchNorm2d(l))
+                layers.append(torch.nn.ReLU(inplace=True))
+                ic = l
 
-      layers.append(torch.nn.Conv2d(in_channels=512, out_channels=256, kernel_size=3, padding=1))
-      layers.append(torch.nn.ReLU(inplace=True))
-      layers.append(torch.nn.Conv2d(in_channels=256, out_channels=128, kernel_size=3, padding=1))
-      layers.append(torch.nn.ReLU(inplace=True))
-      layers.append(torch.nn.Conv2d(128,1,1))
-    
-      self._conv = torch.nn.Sequential(*layers)
+        layers.append(torch.nn.Conv2d(in_channels=512, out_channels=256, kernel_size=3, padding=1))
+        layers.append(torch.nn.ReLU(inplace=True))
+        layers.append(torch.nn.Conv2d(in_channels=256, out_channels=128, kernel_size=3, padding=1))
+        layers.append(torch.nn.ReLU(inplace=True))
+        layers.append(torch.nn.Conv2d(128, 1, 1))
 
-
+        self._conv = torch.nn.Sequential(*layers)
 
     def forward(self, img):
         """
@@ -49,8 +46,8 @@ class Planner(torch.nn.Module):
         return (B,2)
         """
         x = self._conv(img)
-        #print(img.shape)
-        #print(x.shape)
+        # print(img.shape)
+        # print(x.shape)
         return spatial_argmax(x[:, 0])
         # return self.classifier(x.mean(dim=[-2, -1]))
 

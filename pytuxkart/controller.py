@@ -1,24 +1,28 @@
 import pystk
 
+
 def acc_control(current_vel, aim_point):
     base_acc = 1
     turn_index = abs(aim_point[0])
-    acc = (-(0.94*turn_index**2)+1) * base_acc
-    brake = True if (turn_index * current_vel**2 > 86) else False
+    acc = (-(0.94 * turn_index ** 2) + 1) * base_acc
+    brake = True if (turn_index * current_vel ** 2 > 86) else False
     acc = acc if not brake else 0
     return acc, brake
 
+
 def steering_control(aim_point):
     turn_index = aim_point[0]
-    steering = -(turn_index**2)+2*turn_index if turn_index > 0 else (turn_index**2)+2*turn_index
+    steering = -(turn_index ** 2) + 2 * turn_index if turn_index > 0 else (turn_index ** 2) + 2 * turn_index
     drift = False if abs(steering) < 0.29 else True
     return steering, drift
 
+
 def nitro_control(aim_point, current_vel):
-    if (abs(aim_point[0]) < 0.1 and current_vel > 4):
+    if abs(aim_point[0]) < 0.1 and current_vel > 4:
         return True
     else:
         return False
+
 
 def control(aim_point, current_vel):
     """
@@ -50,6 +54,7 @@ def control(aim_point, current_vel):
 if __name__ == '__main__':
     from utils import PyTux
     from argparse import ArgumentParser
+
 
     def test_controller(args):
         import numpy as np
