@@ -85,7 +85,7 @@ class PyTux:
             if self.k is not None:
                 self.k.stop()
                 del self.k
-            config = pystk.RaceConfig(num_kart=1, laps=1, render=True, track=track)
+            config = pystk.RaceConfig(num_kart=1, laps=1, track=track)
             config.players[0].controller = pystk.PlayerConfig.Controller.PLAYER_CONTROL
 
             self.k = pystk.Race(config)
