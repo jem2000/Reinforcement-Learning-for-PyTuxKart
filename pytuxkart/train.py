@@ -8,6 +8,7 @@ from . import dense_transforms
 
 def train(args):
     from os import path
+    print("Initializing Model =================================")
     model = Planner()
     train_logger, valid_logger = None, None
     if args.log_dir is not None:
@@ -15,8 +16,53 @@ def train(args):
 
     """
     Your code here, modify your HW4 code
-    Hint: Use the log function below to debug and visualize your model
+    
     """
+    print("installing torch ...")
+    import torch
+
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+    model = model.to(device)
+    if args.continue_training:
+        model.load_state_dict(torch.load(path.join(path.dirname(path.abspath(__file__)), 'planner.th')))
+
+    loss = torch.nn.L1Loss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    
+    print("installing inspect ...")
+    import inspect
+    transform = eval(args.transform, {k: v for k, v in inspect.getmembers(dense_transforms) if inspect.isclass(v)})
+    print("loading data ...")
+    train_data = load_data('drive_data', transform=transform, num_workers=args.num_workers)
+
+    global_step = 0
+    print("Begin Training =================================")
+    for epoch in range(args.num_epoch):
+        model.train()
+        losses = []
+        for img, label in train_data:
+            img, label = img.to(device), label.to(device)
+
+            pred = model(img)
+            loss_val = loss(pred, label)
+
+            if train_logger is not None:
+                train_logger.add_scalar('loss', loss_val, global_step)
+                if global_step % 100 == 0:
+                    log(train_logger, img, label, pred, global_step)
+
+            optimizer.zero_grad()
+            loss_val.backward()
+            optimizer.step()
+            global_step += 1
+            
+            losses.append(loss_val.detach().cpu().numpy())
+        
+        avg_loss = np.mean(losses)
+        if train_logger is None:
+            print('epoch %-3d \t loss = %0.3f' % (epoch, avg_loss))
+        save_model(model)
 
     save_model(model)
 
