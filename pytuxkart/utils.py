@@ -95,6 +95,8 @@ class PyTux:
         state = pystk.WorldState()
         track = pystk.Track()
 
+        print(state)
+
         last_rescue = 0
 
         if verbose:

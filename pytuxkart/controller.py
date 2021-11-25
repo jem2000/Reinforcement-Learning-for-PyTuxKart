@@ -23,30 +23,25 @@ def nitro_control(aim_point, current_vel):
     else:
         return False
 
-
-def control(aim_point, current_vel):
-    """
-    Set the Action for the low-level controller
-    :param aim_point: Aim point, in screen coordinate frame [-1..1]
-    :param current_vel: Current velocity of the kart
-    :return: a pystk.Action (set acceleration, brake, steer, drift)
-    """
+def rl_control(aim_point, current_vel, override, override_val):
     action = pystk.Action()
-
-    """
-    Your code here
-    Hint: Use action.acceleration (0..1) to change the velocity. Try targeting a target_velocity (e.g. 20).
-    Hint: Use action.brake to True/False to brake (optionally)
-    Hint: Use action.steer to turn the kart towards the aim_point, clip the steer angle to -1..1
-    Hint: You may want to use action.drift=True for wide turns (it will turn faster)
-    """
 
     action.steer, action.drift = steering_control(aim_point)
     action.acceleration, brake = acc_control(current_vel, aim_point)
     action.nitro = nitro_control(aim_point, current_vel)
     action.brake = brake or action.drift
 
-    # print(aim_point, current_vel, action)
+    setattr(action,override,override_val)
+    
+    return action
+
+def control(aim_point, current_vel):
+    action = pystk.Action()
+
+    action.steer, action.drift = steering_control(aim_point)
+    action.acceleration, brake = acc_control(current_vel, aim_point)
+    action.nitro = nitro_control(aim_point, current_vel)
+    action.brake = brake or action.drift
 
     return action
 
