@@ -160,6 +160,7 @@ class A2CAgent:
         return selected_action.clamp(-1.0, 1.0).cpu().detach().numpy()
     
     def step(self, state, track, prev_loc, action, aim_point):
+        restarted = False
         done = False
         self.env.k.step(action)
 
@@ -173,23 +174,24 @@ class A2CAgent:
                 self.restart_buffer = 0
                 if self.verbose:
                     print('off_track restarted ****************')
-                done = True
+                restarted = True
             else:
                 self.restart_buffer += 1
         elif end_track:
             if self.verbose:
                 print('end_track restarted ****************')
+            restarted = True
             done = True
         
         cur_loc = kart.distance_down_track
         # print('distance down track: ', cur_loc)
         steer_threshold = 0.35
         speed_threshold = 1
-        reward_off = 0 if (off_track < steer_threshold) else (off_track - steer_threshold) * 10
-        reward_speed = 0 if (cur_loc - prev_loc > speed_threshold) else (cur_loc - prev_loc - speed_threshold) * 10
+        reward_off = 0 if (off_track < steer_threshold) else (off_track - steer_threshold) * 5
+        reward_speed = 0 if (cur_loc - prev_loc > speed_threshold) else (cur_loc - prev_loc - speed_threshold) * 5
         reward = reward_speed - reward_off
 
-        return cur_loc, reward, done
+        return cur_loc, reward, restarted, done
     
     def update_kart(self, track, state):
         kart = state.players[0].kart
@@ -211,7 +213,13 @@ class A2CAgent:
         # Q_t   = r + gamma * V(s_{t+1})  if obs != Terminal
         #       = r                       otherwise
         mask = 1 - done
-        # print(obs, log_prob, next_obs, reward, done, mask)
+        # print('==============================')
+        # print('state: ', obs)
+        # print( 'log_prob: ', log_prob)
+        # print('next_state: ', next_obs)
+        # print('reward: ', reward)
+        # print('done: ', done)
+        # print('mask: ', mask)
         next_obs = torch.FloatTensor(next_obs).to(self.device)
         pred_value = self.critic(obs)
         targ_value = reward + self.gamma * self.critic(next_obs) * mask
@@ -231,6 +239,9 @@ class A2CAgent:
         self.actor_optimizer.zero_grad()
         policy_loss.backward()
         self.actor_optimizer.step()
+
+        # print('policy_loss: ', policy_loss)
+        # print('value_loss: ', value_loss)
 
         return policy_loss.item(), value_loss.item()
     
@@ -276,7 +287,7 @@ class A2CAgent:
 
             steer = self.select_action(obs)
             action = rl_control(aim_point, vel, 'steer', steer)
-            prev_loc, reward, done = self.step(state, track, prev_loc, action, aim_point)
+            prev_loc, reward, restarted, done = self.step(state, track, prev_loc, action, aim_point)
 
             next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
             next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel))
@@ -291,16 +302,18 @@ class A2CAgent:
             
             if vel < 1.0 and self.total_step - last_rescue > RESCUE_TIMEOUT:
                 last_rescue = self.total_step
-                done = True
+                restarted = True
             
             # if episode ends
-            if done:
+            if restarted:
                 state, track = self.init_track()
                 state.update()
                 track.update()
+                prev_loc = 0
+
+            if done:
                 best_score = score if score > best_score else best_score
                 scores.append(score)
-                prev_loc = 0
                 score = 0
 
             if self.verbose:
@@ -319,7 +332,7 @@ class A2CAgent:
 
 
             if self.total_step % plotting_interval == 0:
-                best_score = -999999999999
+                best_score = -9999999999999
                 self.save_model(self.actor)
                 if ON_COLAB:
                     self._plot(self.total_step, scores, actor_losses, critic_losses)
@@ -357,7 +370,7 @@ class A2CAgent:
 
             steer = self.select_action(obs, test_actor)
             action = rl_control(aim_point, vel, 'steer', steer)
-            prev_loc, reward, done = self.step(state, track, prev_loc, action, aim_point)
+            prev_loc, reward, restarted, done = self.step(state, track, prev_loc, action, aim_point)
 
             next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
             next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel))
@@ -366,19 +379,21 @@ class A2CAgent:
 
             if vel < 1.0 and cur_frame - last_rescue > RESCUE_TIMEOUT:
                 last_rescue = cur_frame
-                done = True
+                restarted = True
             
             # if episode ends
-            if done:
+            if restarted:
                 state, track = self.init_track()
                 state.update()
                 track.update()
-                best_score = score if score > best_score else best_score
-                prev_loc = 0
-                score = 0
-                cur_frame = 0
                 count += 1
                 print('count: ', count)
+                prev_loc = 0
+                cur_frame = 0
+
+            if done:
+                best_score = score if score > best_score else best_score
+                score = 0
 
             if self.verbose:
                 title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}; Attempt: {}".format(cur_frame, score, best_score, count+1)
