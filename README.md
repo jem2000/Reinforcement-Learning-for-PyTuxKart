@@ -6,14 +6,32 @@ This is the final project for EC400 of Justin Melville, Jack Halberian, and Wang
 To train RL
 ```
 cd pytuxkart
-python actcri_agent.py
+python actcri_agent.py <trackname> <optional -v>
+```
+example
+```
+python actcri_agent.py lighthouse -v # running lighthouse with verbose
+python actcri_agent.py zengarden # running zengarden without verbose
 ```
 Current RL only train on the steering
+Running without verbose is way faster than running with verbose
 #### Reference
-[Source](https://github.com/MrSyee/pg-is-all-you-need)
+Code source from here: [Source](https://github.com/MrSyee/pg-is-all-you-need)
+Jupyter Notebook: [colab](https://colab.research.google.com/github/MrSyee/pg-is-all-you-need/blob/master/01.A2C.ipynb)
 
-##### Todo
+#### Track list
+- zengarden
+- lighthouse
+- hacienda
+- snowtuxpeak
+- cornfield_crossing
+- scotland
+
+### Todo
+- [ ] Need a test function that can run with pre-trained Actor weights
 - [ ] Need upgrade reward, current reward function isn't good enough
 - [ ] Max score should display max traveled distance
 - [ ] Off track != done, the game shouldn't end when off track
-- [ ] actor critics should be positive
+- [ ] Actor critics should be positive
+- [x] Fixed aim point could not display
+- [x] Enabled argument parsing feature

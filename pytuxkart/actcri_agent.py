@@ -11,12 +11,20 @@ import torch.optim as optim
 import pystk
 from IPython.display import clear_output
 from torch.distributions import Normal
-from controller import rl_control
-import utils
 from torch import save
+import os
+import argparse
 
 RESCUE_TIMEOUT = 30
 TRACK_OFFSET = 15
+ON_COLAB = os.environ.get('ON_COLAB', False)
+if ON_COLAB:
+    from .controller import rl_control
+    from . import utils
+else:
+    from controller import rl_control
+    import utils
+
 
 def initialize_uniformly(layer: nn.Linear, init_w: float = 3e-3):
     """Initialize the weights and bias in [-init_w, init_w]."""
@@ -148,7 +156,7 @@ class A2CAgent:
         state.update()
         track.update()
         kart = state.players[0].kart
-        off_track = abs(aim_point[0]) > 0.9
+        off_track = abs(aim_point[0]) > 0.95
         end_track = np.isclose(kart.overall_distance / track.length, 1.0, atol=2e-3)
         if off_track:
             if (self.restart_buffer > 30):
@@ -165,8 +173,10 @@ class A2CAgent:
         
         cur_loc = kart.distance_down_track
         # print('distance down track: ', cur_loc)
-        reward_off = 0 if (off_track < 0.2) else (off_track - 0.2) * 5
-        reward_speed = 0 if (cur_loc - prev_loc > 0.8) else (cur_loc - prev_loc - 0.8) * 5
+        steer_threshold = 0.35
+        speed_threshold = 1
+        reward_off = 0 if (off_track < steer_threshold) else (off_track - steer_threshold) * 10
+        reward_speed = 0 if (cur_loc - prev_loc > speed_threshold) else (cur_loc - prev_loc - speed_threshold) * 10
         reward = reward_speed - reward_off
 
         return cur_loc, reward, done
@@ -180,9 +190,9 @@ class A2CAgent:
 
         aim_point_world = self.env._point_on_track(cur_loc+TRACK_OFFSET, track)
         aim_point_image = self.env._to_image(aim_point_world, proj, view)
-        current_vel = np.linalg.norm(kart.velocity)
+        current_vel = (np.linalg.norm(kart.velocity)-10)/10
 
-        return aim_point_image, current_vel, proj, view, kart
+        return aim_point_image, current_vel, aim_point_world, proj, view, kart
 
     def update_model(self) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update the model by gradient descent."""  
@@ -191,6 +201,7 @@ class A2CAgent:
         # Q_t   = r + gamma * V(s_{t+1})  if obs != Terminal
         #       = r                       otherwise
         mask = 1 - done
+        # print(obs, log_prob, next_obs, reward, done, mask)
         next_obs = torch.FloatTensor(next_obs).to(self.device)
         pred_value = self.critic(obs)
         targ_value = reward + self.gamma * self.critic(next_obs) * mask
@@ -249,14 +260,14 @@ class A2CAgent:
         track.update()
         
         for self.total_step in range(1, num_frames + 1):
-            aim_point, vel, _, _, _ = self.update_kart(track, state)
+            aim_point, vel, _, _, _, _ = self.update_kart(track, state)
             obs = np.array((aim_point[0], aim_point[1], vel))
 
             steer = self.select_action(obs)
             action = rl_control(aim_point, vel, 'steer', steer)
             prev_loc, reward, done = self.step(state, track, prev_loc, action, aim_point)
 
-            next_aim_point, next_vel, proj, view, kart = self.update_kart(track, state)
+            next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
             next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel))
 
             self.transition.extend([next_obs, reward, done])
@@ -288,16 +299,21 @@ class A2CAgent:
                 ax.imshow(self.env.k.render_data[0].image)
                 WH2 = np.array([self.env.config.screen_width, self.env.config.screen_height]) / 2
                 ax.add_artist(plt.Circle(WH2*(1+self.env._to_image(kart.location, proj, view)), 2, ec='b', fill=False, lw=1.5))
-                # ax.add_artist(plt.Circle(WH2*(1+self.env._to_image(next_aim_point, proj, view)), 2, ec='r', fill=False, lw=1.5))
+                ax.add_artist(plt.Circle(WH2*(1+self.env._to_image(aim_point_world, proj, view)), 2, ec='r', fill=False, lw=1.5))
                 plt.pause(1e-3)
                 print('observation: ', obs)
                 print('steering: ', steer)
                 print('time frame: ', self.total_step)
                 print('score: ', score, 'reward: ', reward)
 
+
             if self.total_step % plotting_interval == 0:
+                best_score = -999999999999
                 self.save_model(self.actor)
-                # self._plot(self.total_step, scores, actor_losses, critic_losses)
+                if ON_COLAB:
+                    self._plot(self.total_step, scores, actor_losses, critic_losses)
+                elif not self.verbose:
+                    self._plot_cmd(self.total_step, scores, actor_losses, critic_losses, best_score)
 
         self.env.close()
     
@@ -373,12 +389,23 @@ def main(pytux, track, verbose):
     agent.train(num_frames)
 
 if __name__ == '__main__':
+
     num_frames = 100000
     gamma = 0.9
     entropy_weight = 1e-2
-    track =  "lighthouse"
-    verbose = True
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('track')
+    parser.add_argument('-v', '--verbose', action='store_true')
+    args = parser.parse_args()
+
 
     pytux = utils.PyTux()
-    agent = A2CAgent(pytux, track, gamma, entropy_weight, verbose=verbose)
+    agent = A2CAgent(
+        pytux=pytux,
+        track=args.track,
+        gamma=gamma,
+        entropy_weight=entropy_weight,
+        verbose=args.verbose
+    )
     agent.train(num_frames)
