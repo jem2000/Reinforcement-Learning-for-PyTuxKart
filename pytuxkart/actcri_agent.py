@@ -136,11 +136,21 @@ class A2CAgent:
         if isinstance(model, Actor):
             return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), 'actor.th'))
         raise ValueError("model type '%s' not supported!" % str(type(model)))
+    
+    def load_model(self):
+        from torch import load
+        from os import path
+        r = Actor(3, 1)
+        r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'actor.th'), map_location='cpu'))
+        return r
         
-    def select_action(self, obs: np.ndarray) -> np.ndarray:
+    def select_action(self, obs: np.ndarray, test_actor=None) -> np.ndarray:
         """Select an action from the input observation."""
         obs = torch.FloatTensor(obs).to(self.device)
-        action, dist = self.actor(obs)
+        if self.is_test:
+            action, dist = test_actor(obs)
+        else:
+            action, dist = self.actor(obs)
         selected_action = dist.mean if self.is_test else action
 
         if not self.is_test:
@@ -246,9 +256,6 @@ class A2CAgent:
     def train(self, num_frames: int, plotting_interval: int = 300):
         self.is_test = False
 
-        if self.verbose:
-            fig, ax = plt.subplots(1, 1)
-
         actor_losses, critic_losses, scores = [], [], []
         score = 0
         prev_loc = 0
@@ -258,6 +265,10 @@ class A2CAgent:
         state, track = self.init_track()
         state.update()
         track.update()
+
+        if self.verbose:
+            # show video
+            fig, ax = plt.subplots(1, 1)
         
         for self.total_step in range(1, num_frames + 1):
             aim_point, vel, _, _, _, _ = self.update_kart(track, state)
@@ -317,28 +328,74 @@ class A2CAgent:
 
         self.env.close()
     
-    def test(self):
+    def test(self, max_frame):
         """Test the agent."""
         self.is_test = True
-        
-        state, track = self.init_track()
-        done = False
+        print('Testing')
+
         score = 0
         prev_loc = 0
+        best_score = -9999999999999
+        last_rescue = 0
+        count = 0
         
-        frames = []
-        while not done:
-            frames.append(self.env.render(mode="rgb_array"))
-            action = self.select_action(state)
-            next_state, reward, done = self.step(action)
+        state, track = self.init_track()
+        state.update()
+        track.update()
 
-            state = next_state
+        test_actor = self.load_model().eval()
+
+        if self.verbose:
+            # show video
+            fig, ax = plt.subplots(1, 1)
+        
+        for cur_frame in range(max_frame):
+            if count >= 9:
+                break
+            aim_point, vel, _, _, _, _ = self.update_kart(track, state)
+            obs = np.array((aim_point[0], aim_point[1], vel))
+
+            steer = self.select_action(obs, test_actor)
+            action = rl_control(aim_point, vel, 'steer', steer)
+            prev_loc, reward, done = self.step(state, track, prev_loc, action, aim_point)
+
+            next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
+            next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel))
+
             score += reward
+
+            if vel < 1.0 and cur_frame - last_rescue > RESCUE_TIMEOUT:
+                last_rescue = cur_frame
+                done = True
+            
+            # if episode ends
+            if done:
+                state, track = self.init_track()
+                state.update()
+                track.update()
+                best_score = score if score > best_score else best_score
+                prev_loc = 0
+                score = 0
+                cur_frame = 0
+                count += 1
+                print('count: ', count)
+
+            if self.verbose:
+                title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}; Attempt: {}".format(cur_frame, score, best_score, count+1)
+                ax.clear()
+                ax.set_title(title)
+                ax.imshow(self.env.k.render_data[0].image)
+                WH2 = np.array([self.env.config.screen_width, self.env.config.screen_height]) / 2
+                ax.add_artist(plt.Circle(WH2*(1+self.env._to_image(kart.location, proj, view)), 2, ec='b', fill=False, lw=1.5))
+                ax.add_artist(plt.Circle(WH2*(1+self.env._to_image(aim_point_world, proj, view)), 2, ec='r', fill=False, lw=1.5))
+                plt.pause(1e-3)
+                print('observation: ', obs)
+                print('steering: ', steer)
+                print('time frame: ', cur_frame)
+                print('score: ', score, 'reward: ', reward)
         
         # print("score: ", score)
         self.env.close()
-        
-        return frames
 
     def _plot_cmd(
         self, 
@@ -380,25 +437,30 @@ class A2CAgent:
             subplot(loc, title, values)
         plt.show()
 
-def main(pytux, track, verbose):
-    num_frames = 100000
+def main(pytux, track, verbose, test):
+    num_frames = 1000000
     gamma = 0.9
     entropy_weight = 1e-2
 
     agent = A2CAgent(pytux, track, gamma, entropy_weight, verbose=verbose)
-    agent.train(num_frames)
+    if test:
+        agent.test(num_frames)
+    else:
+        agent.train(num_frames)
 
 if __name__ == '__main__':
 
-    num_frames = 100000
+    num_frames = 1000000
     gamma = 0.9
     entropy_weight = 1e-2
 
     parser = argparse.ArgumentParser()
     parser.add_argument('track')
     parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('-t', '--test', action='store_true')
     args = parser.parse_args()
 
+    print(args)
 
     pytux = utils.PyTux()
     agent = A2CAgent(
@@ -408,4 +470,8 @@ if __name__ == '__main__':
         entropy_weight=entropy_weight,
         verbose=args.verbose
     )
-    agent.train(num_frames)
+
+    if args.test:
+        agent.test(num_frames)
+    else:
+        agent.train(num_frames)
