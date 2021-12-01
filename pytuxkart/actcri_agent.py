@@ -17,6 +17,8 @@ from torch import load
 from os import path
 import argparse
 
+from pytux_utils import DeepRL
+
 RESCUE_TIMEOUT = 30
 TRACK_OFFSET = 15
 ON_COLAB = os.environ.get('ON_COLAB', False)
@@ -78,7 +80,7 @@ class Critic(nn.Module):
         return value
 
 
-class A2CAgent:
+class A2CAgent(DeepRL):
     """A2CAgent interacting with environment.
         
     Atribute:
@@ -97,21 +99,22 @@ class A2CAgent:
 
     def __init__(self, pytux, track, gamma: float, entropy_weight: float, verbose=False, continue_training=False,
                  screen_width=128, screen_height=96):
-        """Initialize."""
-        self.env = pytux
-        self.track = track
-        self.gamma = gamma
-        self.entropy_weight = entropy_weight
-
-        # device: cpu / gpu
-        self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        )
-        print(self.device)
-
-        # networks
-        self.obs_dim = 4
-        self.action_dim = 1
+        # """Initialize."""
+        # self.env = pytux
+        # self.track = track
+        # self.gamma = gamma
+        # self.entropy_weight = entropy_weight
+        #
+        # # device: cpu / gpu
+        # self.device = torch.device(
+        #     "cuda" if torch.cuda.is_available() else "cpu"
+        # )
+        # print(self.device)
+        #
+        # # networks
+        # self.obs_dim = 4
+        # self.action_dim = 1
+        super().__init__(pytux, track, gamma, entropy_weight)
         self.actor = Actor(self.obs_dim, self.action_dim).to(self.device)
         if continue_training:
             self.actor.load_state_dict(
@@ -138,16 +141,6 @@ class A2CAgent:
         self.restart_time = 0
 
         self.off_track_tolerance = 0
-
-    def save_model(self, model):
-        if isinstance(model, Actor):
-            return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), 'actor.th'))
-        raise ValueError("model type '%s' not supported!" % str(type(model)))
-
-    def load_model(self):
-        r = Actor(self.obs_dim, self.action_dim).to(self.device)
-        r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'actor.th'), map_location='cpu'))
-        return r
 
     def select_action(self, obs: np.ndarray, test_actor=None) -> np.ndarray:
         """Select an action from the input observation."""
@@ -204,22 +197,9 @@ class A2CAgent:
         reward_speed = 0 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 10  # range(-5, 0)
         reward = reward_speed + reward_off
 
-        if (self.total_step - self.restart_time < 5):
+        if self.total_step - self.restart_time < 5:
             reward = -30
         return cur_loc, reward / 2, restarted, done
-
-    def update_kart(self, track, state):
-        kart = state.players[0].kart
-        cur_loc = kart.distance_down_track
-
-        proj = np.array(state.players[0].camera.projection).T
-        view = np.array(state.players[0].camera.view).T
-
-        aim_point_world = self.env._point_on_track(cur_loc + TRACK_OFFSET, track)
-        aim_point_image = self.env._to_image(aim_point_world, proj, view)
-        current_vel = (np.linalg.norm(kart.velocity) - 10) / 10
-
-        return aim_point_image, current_vel, aim_point_world, proj, view, kart
 
     def update_model(self) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update the model by gradient descent."""
@@ -340,17 +320,7 @@ class A2CAgent:
 
             if self.verbose:
                 title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(self.total_step, score, best_score)
-                ax.clear()
-                ax.set_title(title)
-                ax.imshow(self.env.k.render_data[0].image)
-                WH2 = np.array([self.env.config.screen_width, self.env.config.screen_height]) / 2
-                ax.add_artist(
-                    plt.Circle(WH2 * (1 + self.env._to_image(kart.location, proj, view)), 2, ec='b', fill=False,
-                               lw=1.5))
-                ax.add_artist(
-                    plt.Circle(WH2 * (1 + self.env._to_image(aim_point_world, proj, view)), 2, ec='r', fill=False,
-                               lw=1.5))
-                plt.pause(1e-3)
+                verbose(self, title)
                 print('observation: ', obs)
                 print('steering: ', steer)
                 print('time frame: ', self.total_step)
@@ -422,17 +392,7 @@ class A2CAgent:
 
             if self.verbose:
                 title = "Time frame: {}; Score: {:.2f}; Attempt: {}".format(cur_frame, score, count + 1)
-                ax.clear()
-                ax.set_title(title)
-                ax.imshow(self.env.k.render_data[0].image)
-                WH2 = np.array([self.env.config.screen_width, self.env.config.screen_height]) / 2
-                ax.add_artist(
-                    plt.Circle(WH2 * (1 + self.env._to_image(kart.location, proj, view)), 2, ec='b', fill=False,
-                               lw=1.5))
-                ax.add_artist(
-                    plt.Circle(WH2 * (1 + self.env._to_image(aim_point_world, proj, view)), 2, ec='r', fill=False,
-                               lw=1.5))
-                plt.pause(1e-3)
+                verbose(self, title)
                 print('observation: ', obs)
                 print('steering: ', steer)
                 print('time frame: ', cur_frame)

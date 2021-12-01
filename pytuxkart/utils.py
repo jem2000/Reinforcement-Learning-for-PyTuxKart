@@ -49,7 +49,7 @@ class PyTux:
         self.k = None
 
     @staticmethod
-    def _point_on_track(distance, track, offset=0.0):
+    def point_on_track(distance, track, offset=0.0):
         """
         Get a point at `distance` down the `track`. Optionally applies an offset after the track segment if found.
         Returns a 3d coordinate
