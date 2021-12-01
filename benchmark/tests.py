@@ -18,6 +18,7 @@ pystk.init(pystk_config)
 
 class PySTKGrader(Grader):
     use_planner = False
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.C = self.module.control
@@ -70,12 +71,12 @@ class PySTKGrader(Grader):
                 if self.P is None:
                     proj = np.array(state.players[0].camera.projection).T
                     view = np.array(state.players[0].camera.view).T
-                    aim_point_world = self._point_on_track(kart.distance_down_track+TRACK_OFFSET, track)
+                    aim_point_world = self._point_on_track(kart.distance_down_track + TRACK_OFFSET, track)
                     aim_point_image = self._to_image(aim_point_world, proj, view)
                 else:
                     image = np.array(k.render_data[0].image)
                     aim_point_image = self.P(TF.to_tensor(image)[None]).squeeze(0).cpu().detach().numpy()
-                
+
                 current_vel = np.linalg.norm(kart.velocity)
                 action = self.C(aim_point_image, current_vel)
 
@@ -95,7 +96,7 @@ class PySTKGrader(Grader):
 class ControllerGrader(PySTKGrader, Grader):
     """Controller"""
     use_planner = False
-    
+
     @Case(score=5)
     def test_lighthouse(self):
         """lighthouse"""

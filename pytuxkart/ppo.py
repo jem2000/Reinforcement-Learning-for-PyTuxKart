@@ -20,13 +20,16 @@ import argparse
 
 from pytux_utils import DeepRL
 
-if IN_COLAB:  # for colab
-    import base64
-    import glob
-    import io
-    import os
+ON_COLAB = os.environ.get('ON_COLAB', False)
+if ON_COLAB:
+    from .controller import rl_control
+    from . import utils
+else:
+    from controller import rl_control
+    import utils
 
     from IPython.display import HTML, display
+
 
     def ipython_show_video(path: str) -> None:
         """Show a video at `path` within IPython Notebook."""
@@ -44,33 +47,28 @@ if IN_COLAB:  # for colab
             """.format(encoded.decode("ascii"))
         ))
 
-    list_of_files = glob.glob("videos/*.mp4")
-    latest_file = max(list_of_files, key=os.path.getctime)
-    print(latest_file)
-    ipython_show_video(latest_file)
 
-else:  # for jupyter
-    from matplotlib import animation
-    from JSAnimation.IPython_display import display_animation
-    from IPython.display import display
+    # list_of_files = glob.glob("videos/*.mp4")
+    # latest_file = max(list_of_files, key=os.path.getctime)
+    # print(latest_file)
+    # ipython_show_video(latest_file)
 
-
-    def display_frames_as_gif(frames):
-        """Displays a list of frames as a gif, with controls."""
-        patch = plt.imshow(frames[0])
-        plt.axis('off')
-
-        def animate(i):
-            patch.set_data(frames[i])
-
-        anim = animation.FuncAnimation(
-            plt.gcf(), animate, frames = len(frames), interval=50
-        )
-        display(display_animation(anim, default_mode='loop'))
-
-
-    # display
-    display_frames_as_gif(frames)
+    # def display_frames_as_gif(frames):
+    #     """Displays a list of frames as a gif, with controls."""
+    #     patch = plt.imshow(frames[0])
+    #     plt.axis('off')
+    #
+    #     def animate(i):
+    #         patch.set_data(frames[i])
+    #
+    #     anim = animation.FuncAnimation(
+    #         plt.gcf(), animate, frames=len(frames), interval=50
+    #     )
+    #     display(display_animation(anim, default_mode='loop'))
+    #
+    #
+    # # display
+    # display_frames_as_gif(frames)
 
 
 def init_layer_uniform(layer: nn.Linear, init_w: float = 3e-3) -> nn.Linear:
@@ -135,13 +133,14 @@ class Critic(nn.Module):
 
         return value
 
+
 def compute_gae(
-    next_value: list,
-    rewards: list,
-    masks: list,
-    values: list,
-    gamma: float,
-    tau: float
+        next_value: list,
+        rewards: list,
+        masks: list,
+        values: list,
+        gamma: float,
+        tau: float
 ) -> List:
     """Compute gae."""
     values = values + [next_value]
@@ -150,24 +149,25 @@ def compute_gae(
 
     for step in reversed(range(len(rewards))):
         delta = (
-            rewards[step]
-            + gamma * values[step + 1] * masks[step]
-            - values[step]
+                rewards[step]
+                + gamma * values[step + 1] * masks[step]
+                - values[step]
         )
         gae = delta + gamma * tau * masks[step] * gae
         returns.appendleft(gae + values[step])
 
     return list(returns)
 
+
 def ppo_iter(
-    epoch: int,
-    mini_batch_size: int,
-    states: torch.Tensor,
-    actions: torch.Tensor,
-    values: torch.Tensor,
-    log_probs: torch.Tensor,
-    returns: torch.Tensor,
-    advantages: torch.Tensor,
+        epoch: int,
+        mini_batch_size: int,
+        states: torch.Tensor,
+        actions: torch.Tensor,
+        values: torch.Tensor,
+        log_probs: torch.Tensor,
+        returns: torch.Tensor,
+        advantages: torch.Tensor,
 ):
     """Yield mini-batches."""
     batch_size = states.size(0)
@@ -273,7 +273,7 @@ class PPOAgent(DeepRL):
 
         end_track = np.isclose(kart.overall_distance / track.length, 1.0, atol=2e-3)
         if off_track:
-            if (self.total_step - self.restart_time > 30):
+            if self.total_step - self.restart_time > 30:
                 self.restart_time = self.total_step
                 if self.verbose:
                     print('off_track restarted ****************')
@@ -590,6 +590,7 @@ class PPOAgent(DeepRL):
         for loc, title, values in subplot_params:
             subplot(loc, title, values)
         plt.show()
+
 
 class ActionNormalizer(gym.ActionWrapper):
     """Rescale and relocate the actions."""
