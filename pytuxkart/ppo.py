@@ -198,7 +198,7 @@ class PPOAgent(DeepRL):
         is_test (bool): flag to show the current mode (train / test)
     """
 
-    def __init__(self, env: pytux, track: track, batch_size: int, gamma: float, tau: float, epsilon: float, epoch: int,
+    def __init__(self, pytux, track, batch_size: int, gamma: float, tau: float, epsilon: float, epoch: int,
                  rollout_len: int, entropy_weight: float, verbose=False, continue_training=False):
         """Initialize."""
         super().__init__(pytux, track, gamma, entropy_weight)
