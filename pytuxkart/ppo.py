@@ -251,33 +251,84 @@ class PPOAgent:
         # mode: train / test
         self.is_test = False
 
-    def select_action(self, state: np.ndarray) -> np.ndarray:
+        self.verbose = verbose
+
+    def save_model(self, model):
+        if isinstance(model, Actor):
+            return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), 'ppo.th'))
+        raise ValueError("model type '%s' not supported!" % str(type(model)))
+
+    def load_model(self):
+        r = Actor(self.obs_dim, self.action_dim).to(self.device)
+        r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'ppo.th'), map_location='cpu'))
+        return r
+
+    def select_action(self, obs: np.ndarray, test_actor=None) -> np.ndarray:
         """Select an action from the input state."""
-        state = torch.FloatTensor(state).to(self.device)
-        action, dist = self.actor(state)
+        obs = torch.FloatTensor(state).to(self.device)
+        # action, dist = self.actor(state)
+
+        if self.is_test:
+            action, dist = test_actor(obs)
+        else:
+            action, dist = self.actor(obs)
+
         selected_action = dist.mean if self.is_test else action
 
         if not self.is_test:
-            value = self.critic(state)
-            self.states.append(state)
+            value = self.critic(obs)
+            self.states.append(obs)
             self.actions.append(selected_action)
             self.values.append(value)
             self.log_probs.append(dist.log_prob(selected_action))
 
-        return selected_action.cpu().detach().numpy()
+        # return selected_action.cpu().detach().numpy()
+        return selected_action.clamp(-1.0, 1.0).cpu().detach().numpy()
 
-    def step(self, action: np.ndarray) -> Tuple[np.ndarray, np.float64, bool]:
+    def step(self, state, track, prev_loc, action, aim_point):
         """Take an action and return the response of the env."""
-        next_state, reward, done, _ = self.env.step(action)
-        next_state = np.reshape(next_state, (1, -1)).astype(np.float64)
-        reward = np.reshape(reward, (1, -1)).astype(np.float64)
-        done = np.reshape(done, (1, -1))
+        restarted = False
+        done = False
+        self.env.k.step(action)
 
-        if not self.is_test:
-            self.rewards.append(torch.FloatTensor(reward).to(self.device))
-            self.masks.append(torch.FloatTensor(1 - done).to(self.device))
+        state.update()
+        track.update()
+        kart = state.players[0].kart
+        off_track = False
+        if abs(aim_point[0]) > 0.97:
+            if self.off_track_tolerance < 20:
+                self.off_track_tolerance += 1
+            else:
+                off_track = True
+                self.off_track_tolerance = 0
 
-        return next_state, reward, done
+        end_track = np.isclose(kart.overall_distance / track.length, 1.0, atol=2e-3)
+        if off_track:
+            if (self.total_step - self.restart_time > 30):
+                self.restart_time = self.total_step
+                if self.verbose:
+                    print('off_track restarted ****************')
+                restarted = True
+        elif end_track:
+            if self.verbose:
+                print('end_track restarted ****************')
+            restarted = True
+            done = True
+
+        cur_loc = kart.distance_down_track
+        # print('distance down track: ', cur_loc)
+        speed_threshold = 0.5
+        abs_aim = abs(aim_point[0])
+        loc_change = (cur_loc - prev_loc) if abs(cur_loc - prev_loc) < 2.5 else 0
+        # print('off: ', abs_aim)
+        # print('loc: ', cur_loc - prev_loc, 'cur_loc: ', cur_loc, 'prev_loc', prev_loc)
+        reward_off = - abs_aim * 30  # range (-25, 0)
+        reward_speed = 0 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 10  # range(-5, 0)
+        reward = reward_speed + reward_off
+
+        if (self.total_step - self.restart_time < 5):
+            reward = -30
+        return cur_loc, reward / 2, restarted, done
 
     def update_model(
             self, next_state: np.ndarray

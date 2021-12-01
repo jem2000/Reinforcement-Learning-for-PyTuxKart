@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="bfbd4166-cbea-4ae6-89ef-e9a12bd3655e" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/pytuxkart/ppo.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pytuxkart/actor.th" beforeDir="false" afterPath="$PROJECT_DIR$/pytuxkart/actor.th" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pytuxkart/ppo.py" beforeDir="false" afterPath="$PROJECT_DIR$/pytuxkart/ppo.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
