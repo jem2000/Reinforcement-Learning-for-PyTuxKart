@@ -62,7 +62,7 @@ class PyTux:
         return x[1] * t + x[0] * (1 - t)
 
     @staticmethod
-    def _to_image(x, proj, view):
+    def to_image(x, proj, view):
         p = proj @ view @ np.array(list(x) + [1])
         return np.clip(np.array([p[0] / p[-1], -p[1] / p[-1]]), -1, 1)
 
@@ -119,7 +119,7 @@ class PyTux:
             view = np.array(state.players[0].camera.view).T
 
             aim_point_world = self._point_on_track(kart.distance_down_track+TRACK_OFFSET, track)
-            aim_point_image = self._to_image(aim_point_world, proj, view)
+            aim_point_image = self.to_image(aim_point_world, proj, view)
             if data_callback is not None:
                 data_callback(t, np.array(self.k.render_data[0].image), aim_point_image)
 
@@ -138,8 +138,8 @@ class PyTux:
                 ax.clear()
                 ax.imshow(self.k.render_data[0].image)
                 WH2 = np.array([self.config.screen_width, self.config.screen_height]) / 2
-                ax.add_artist(plt.Circle(WH2*(1+self._to_image(kart.location, proj, view)), 2, ec='b', fill=False, lw=1.5))
-                ax.add_artist(plt.Circle(WH2*(1+self._to_image(aim_point_world, proj, view)), 2, ec='r', fill=False, lw=1.5))
+                ax.add_artist(plt.Circle(WH2*(1+self.to_image(kart.location, proj, view)), 2, ec='b', fill=False, lw=1.5))
+                ax.add_artist(plt.Circle(WH2*(1+self.to_image(aim_point_world, proj, view)), 2, ec='r', fill=False, lw=1.5))
                 if planner:
                     ap = self._point_on_track(kart.distance_down_track + TRACK_OFFSET, track)
                     ax.add_artist(plt.Circle(WH2*(1+aim_point_image), 2, ec='g', fill=False, lw=1.5))

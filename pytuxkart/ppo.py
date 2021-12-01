@@ -47,7 +47,6 @@ else:
             """.format(encoded.decode("ascii"))
         ))
 
-
     # list_of_files = glob.glob("videos/*.mp4")
     # latest_file = max(list_of_files, key=os.path.getctime)
     # print(latest_file)
@@ -299,19 +298,6 @@ class PPOAgent(DeepRL):
             reward = -30
         return cur_loc, reward / 2, restarted, done
 
-    def update_kart(self, track, state):
-        kart = state.players[0].kart
-        cur_loc = kart.distance_down_track
-
-        proj = np.array(state.players[0].camera.projection).T
-        view = np.array(state.players[0].camera.view).T
-
-        aim_point_world = self.env._point_on_track(cur_loc + TRACK_OFFSET, track)
-        aim_point_image = self.env._to_image(aim_point_world, proj, view)
-        current_vel = (np.linalg.norm(kart.velocity) - 10) / 10
-
-        return aim_point_image, current_vel, aim_point_world, proj, view, kart
-
     def update_model(
             self, next_obs: np.ndarray
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -393,25 +379,6 @@ class PPOAgent(DeepRL):
         critic_loss = sum(critic_losses) / len(critic_losses)
 
         return actor_loss, critic_loss
-
-    def init_track(self, track='lighthouse'):
-        if self.env.k is not None and self.env.k.config.track == track:
-            # print('init restart +++++++++++++++++++++')
-            self.env.k.restart()
-            self.env.k.step()
-        else:
-            if self.env.k is not None:
-                # print('init start +++++++++++++++++++++')
-                self.env.k.stop()
-                del self.env.k
-            config = pystk.RaceConfig(num_kart=1, laps=1, track=track)
-            config.players[0].controller = pystk.PlayerConfig.Controller.PLAYER_CONTROL
-
-            self.env.k = pystk.Race(config)
-            self.env.k.start()
-            self.env.k.step()
-
-        return pystk.WorldState(), pystk.Track()
 
     def train(self, num_frames: int, plotting_interval: int = 2500):
         """Train the agent."""

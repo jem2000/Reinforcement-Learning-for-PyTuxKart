@@ -240,25 +240,6 @@ class A2CAgent(DeepRL):
 
         return policy_loss.item(), value_loss.item()
 
-    def init_track(self, track='lighthouse'):
-        if self.env.k is not None and self.env.k.config.track == track:
-            # print('init restart +++++++++++++++++++++')
-            self.env.k.restart()
-            self.env.k.step()
-        else:
-            if self.env.k is not None:
-                # print('init start +++++++++++++++++++++')
-                self.env.k.stop()
-                del self.env.k
-            config = pystk.RaceConfig(num_kart=1, laps=1, track=track)
-            config.players[0].controller = pystk.PlayerConfig.Controller.PLAYER_CONTROL
-
-            self.env.k = pystk.Race(config)
-            self.env.k.start()
-            self.env.k.step()
-
-        return pystk.WorldState(), pystk.Track()
-
     def train(self, num_frames: int, plotting_interval: int = 2500):
         self.is_test = False
 
@@ -328,7 +309,7 @@ class A2CAgent(DeepRL):
 
             if self.total_step % plotting_interval == 0:
                 best_score = -9999999999999
-                self.save_model(self.actor)
+                self.save_model(self.actor, Actor)
                 if ON_COLAB:
                     self._plot(self.total_step, best_score, actor_losses, critic_losses)
                 elif not self.verbose:

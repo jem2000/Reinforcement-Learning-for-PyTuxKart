@@ -1,6 +1,8 @@
 import numpy as np
 import pystk
 import torch
+from torch import save
+from os import path
 
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms.functional as TF
@@ -37,6 +39,25 @@ class DeepRL:
             plt.Circle(WH2 * (1 + self.env.to_image(aim_point_world, proj, view)), 2, ec='r', fill=False, lw=1.5))
         plt.pause(1e-3)
 
+    def init_track(self, track='lighthouse'):
+        if self.env.k is not None and self.env.k.config.track == track:
+            # print('init restart +++++++++++++++++++++')
+            self.env.k.restart()
+            self.env.k.step()
+        else:
+            if self.env.k is not None:
+                # print('init start +++++++++++++++++++++')
+                self.env.k.stop()
+                del self.env.k
+            config = pystk.RaceConfig(num_kart=1, laps=1, track=track)
+            config.players[0].controller = pystk.PlayerConfig.Controller.PLAYER_CONTROL
+
+            self.env.k = pystk.Race(config)
+            self.env.k.start()
+            self.env.k.step()
+
+        return pystk.WorldState(), pystk.Track()
+
     def update_kart(self, track, state):
         kart = state.players[0].kart
         cur_loc = kart.distance_down_track
@@ -50,7 +71,7 @@ class DeepRL:
 
         return aim_point_image, current_vel, aim_point_world, proj, view, kart
 
-    def save_model(self, model):
+    def save_model(self, model, Actor):
         if isinstance(model, Actor):
             return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), 'actor.th'))
         raise ValueError("model type '%s' not supported!" % str(type(model)))

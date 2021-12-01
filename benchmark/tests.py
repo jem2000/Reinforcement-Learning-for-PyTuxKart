@@ -72,7 +72,7 @@ class PySTKGrader(Grader):
                     proj = np.array(state.players[0].camera.projection).T
                     view = np.array(state.players[0].camera.view).T
                     aim_point_world = self._point_on_track(kart.distance_down_track + TRACK_OFFSET, track)
-                    aim_point_image = self._to_image(aim_point_world, proj, view)
+                    aim_point_image = self.to_image(aim_point_world, proj, view)
                 else:
                     image = np.array(k.render_data[0].image)
                     aim_point_image = self.P(TF.to_tensor(image)[None]).squeeze(0).cpu().detach().numpy()
