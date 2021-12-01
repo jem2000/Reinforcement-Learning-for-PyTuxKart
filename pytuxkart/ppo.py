@@ -18,6 +18,8 @@ from torch import load
 from os import path
 import argparse
 
+from pytux_utils import DeepRL
+
 if IN_COLAB:  # for colab
     import base64
     import glob

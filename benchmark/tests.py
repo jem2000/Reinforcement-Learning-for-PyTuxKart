@@ -39,7 +39,7 @@ class PySTKGrader(Grader):
         return x[1] * t + x[0] * (1 - t)
 
     @staticmethod
-    def _to_image(x, proj, view):
+    def to_image(x, proj, view):
         p = proj @ view @ np.array(list(x) + [1])
         return np.array([p[0] / p[-1], -p[1] / p[-1]])
 

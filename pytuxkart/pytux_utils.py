@@ -1,5 +1,6 @@
 import numpy as np
 import pystk
+import torch
 
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms.functional as TF
@@ -11,10 +12,8 @@ DATASET_PATH = 'drive_data'
 
 
 class DeepRL:
-    def __init__(self, pytux, track, gamma: float, entropy_weight: float, verbose=False, continue_training=False,
-                 screen_width=128, screen_height=96):
+    def __init__(self, pytux, track, gamma: float, entropy_weight: float):
         """Initialize."""
-        self.verbose = verbose
         self.env = pytux
         self.track = track
         self.gamma = gamma
@@ -33,11 +32,9 @@ class DeepRL:
         ax.imshow(self.env.k.render_data[0].image)
         WH2 = np.array([self.env.config.screen_width, self.env.config.screen_height]) / 2
         ax.add_artist(
-            plt.Circle(WH2 * (1 + self.env._to_image(kart.location, proj, view)), 2, ec='b', fill=False,
-                       lw=1.5))
+            plt.Circle(WH2 * (1 + self.env.to_image(kart.location, proj, view)), 2, ec='b', fill=False, lw=1.5))
         ax.add_artist(
-            plt.Circle(WH2 * (1 + self.env._to_image(aim_point_world, proj, view)), 2, ec='r', fill=False,
-                       lw=1.5))
+            plt.Circle(WH2 * (1 + self.env.to_image(aim_point_world, proj, view)), 2, ec='r', fill=False, lw=1.5))
         plt.pause(1e-3)
 
     def update_kart(self, track, state):
@@ -47,8 +44,8 @@ class DeepRL:
         proj = np.array(state.players[0].camera.projection).T
         view = np.array(state.players[0].camera.view).T
 
-        aim_point_world = self.env._point_on_track(cur_loc + TRACK_OFFSET, track)
-        aim_point_image = self.env._to_image(aim_point_world, proj, view)
+        aim_point_world = self.env.point_on_track(cur_loc + TRACK_OFFSET, track)
+        aim_point_image = self.env.to_image(aim_point_world, proj, view)
         current_vel = (np.linalg.norm(kart.velocity) - 10) / 10
 
         return aim_point_image, current_vel, aim_point_world, proj, view, kart

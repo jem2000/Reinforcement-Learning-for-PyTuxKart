@@ -80,7 +80,7 @@ class Critic(nn.Module):
         return value
 
 
-class A2CAgent(deepRL):
+class A2CAgent(DeepRL):
     """A2CAgent interacting with environment.
         
     Atribute:
@@ -97,7 +97,8 @@ class A2CAgent(deepRL):
         is_test (bool): flag to show the current mode (train / test)
     """
 
-    def __init__(self, pytux, track, gamma: float, entropy_weight: float):
+    def __init__(self, pytux, track, gamma: float, entropy_weight: float, verbose=False, continue_training=False,
+                 screen_width=128, screen_height=96):
         # """Initialize."""
         # self.env = pytux
         # self.track = track
