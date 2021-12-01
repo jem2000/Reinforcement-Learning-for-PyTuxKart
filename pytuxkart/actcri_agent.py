@@ -13,6 +13,8 @@ from IPython.display import clear_output
 from torch.distributions import Normal
 from torch import save
 import os
+from torch import load
+from os import path
 import argparse
 
 RESCUE_TIMEOUT = 30
@@ -93,7 +95,7 @@ class A2CAgent:
         is_test (bool): flag to show the current mode (train / test)
     """
 
-    def __init__(self, pytux, track, gamma: float, entropy_weight: float, verbose=False, screen_width=128, screen_height=96):
+    def __init__(self, pytux, track, gamma: float, entropy_weight: float, verbose=False, continue_training=False, screen_width=128, screen_height=96):
         """Initialize."""
         self.env = pytux
         self.track = track
@@ -107,10 +109,12 @@ class A2CAgent:
         print(self.device)
         
         # networks
-        obs_dim = 3
-        action_dim = 1
-        self.actor = Actor(obs_dim, action_dim).to(self.device)
-        self.critic = Critic(obs_dim).to(self.device)
+        self.obs_dim = 4
+        self.action_dim = 1
+        self.actor = Actor(self.obs_dim, self.action_dim).to(self.device)
+        if continue_training:
+            self.actor.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'actor.th'), map_location='cpu'))
+        self.critic = Critic(self.obs_dim).to(self.device)
         
         # optimizer
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=1e-4)
@@ -129,18 +133,17 @@ class A2CAgent:
         self.verbose = verbose
 
         # off track
-        self.restart_buffer = 0
+        self.restart_time = 0
+
+        self.off_track_tolerance = 0
 
     def save_model(self, model):
-        from os import path
         if isinstance(model, Actor):
             return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), 'actor.th'))
         raise ValueError("model type '%s' not supported!" % str(type(model)))
     
     def load_model(self):
-        from torch import load
-        from os import path
-        r = Actor(3, 1)
+        r = Actor(self.obs_dim, self.action_dim).to(self.device)
         r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'actor.th'), map_location='cpu'))
         return r
         
@@ -167,16 +170,21 @@ class A2CAgent:
         state.update()
         track.update()
         kart = state.players[0].kart
-        off_track = abs(aim_point[0]) > 0.95
+        off_track = False
+        if abs(aim_point[0]) > 0.97:
+            if self.off_track_tolerance < 20:
+                self.off_track_tolerance += 1
+            else:
+                off_track = True
+                self.off_track_tolerance = 0
+        
         end_track = np.isclose(kart.overall_distance / track.length, 1.0, atol=2e-3)
         if off_track:
-            if (self.restart_buffer > 30):
-                self.restart_buffer = 0
+            if (self.total_step - self.restart_time > 30):
+                self.restart_time = self.total_step
                 if self.verbose:
                     print('off_track restarted ****************')
                 restarted = True
-            else:
-                self.restart_buffer += 1
         elif end_track:
             if self.verbose:
                 print('end_track restarted ****************')
@@ -185,13 +193,18 @@ class A2CAgent:
         
         cur_loc = kart.distance_down_track
         # print('distance down track: ', cur_loc)
-        steer_threshold = 0.35
-        speed_threshold = 1
-        reward_off = 0 if (off_track < steer_threshold) else (off_track - steer_threshold) * 5
-        reward_speed = 0 if (cur_loc - prev_loc > speed_threshold) else (cur_loc - prev_loc - speed_threshold) * 5
-        reward = reward_speed - reward_off
-
-        return cur_loc, reward, restarted, done
+        speed_threshold = 0.5
+        abs_aim = abs(aim_point[0])
+        loc_change = (cur_loc - prev_loc) if abs(cur_loc - prev_loc) < 2.5 else 0
+        # print('off: ', abs_aim)
+        # print('loc: ', cur_loc - prev_loc, 'cur_loc: ', cur_loc, 'prev_loc', prev_loc)
+        reward_off = - abs_aim * 30 # range (-25, 0)
+        reward_speed = 0 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 10 # range(-5, 0)
+        reward = reward_speed + reward_off
+        
+        if (self.total_step - self.restart_time < 5):
+            reward = -30
+        return cur_loc, reward/2, restarted, done
     
     def update_kart(self, track, state):
         kart = state.players[0].kart
@@ -264,10 +277,11 @@ class A2CAgent:
         
         return pystk.WorldState(), pystk.Track()
 
-    def train(self, num_frames: int, plotting_interval: int = 300):
+    def train(self, num_frames: int, plotting_interval: int = 2500):
         self.is_test = False
 
         actor_losses, critic_losses, scores = [], [], []
+        actor_epoch_lossess, critic_epoch_losses = [], []
         score = 0
         prev_loc = 0
         best_score = -9999999999999
@@ -282,21 +296,27 @@ class A2CAgent:
             fig, ax = plt.subplots(1, 1)
         
         for self.total_step in range(1, num_frames + 1):
-            aim_point, vel, _, _, _, _ = self.update_kart(track, state)
-            obs = np.array((aim_point[0], aim_point[1], vel))
+            aim_point, vel, _, _, _, kart = self.update_kart(track, state)
+            obs = np.array((aim_point[0], aim_point[1], vel, kart.distance_down_track))
 
             steer = self.select_action(obs)
             action = rl_control(aim_point, vel, 'steer', steer)
             prev_loc, reward, restarted, done = self.step(state, track, prev_loc, action, aim_point)
 
             next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
-            next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel))
+            next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel, kart.distance_down_track))
 
             self.transition.extend([next_obs, reward, done])
             
             actor_loss, critic_loss = self.update_model()
-            actor_losses.append(actor_loss)
-            critic_losses.append(critic_loss)
+
+            actor_epoch_lossess.append(actor_loss)
+            critic_epoch_losses.append(critic_loss)
+
+            if self.total_step % 200 == 0:
+                actor_losses.append(np.mean(actor_epoch_lossess))
+                critic_losses.append(np.mean(critic_epoch_losses))
+                actor_epoch_lossess, critic_epoch_losses = [], []
 
             score += reward
             
@@ -335,9 +355,9 @@ class A2CAgent:
                 best_score = -9999999999999
                 self.save_model(self.actor)
                 if ON_COLAB:
-                    self._plot(self.total_step, scores, actor_losses, critic_losses)
+                    self._plot(self.total_step, best_score, actor_losses, critic_losses)
                 elif not self.verbose:
-                    self._plot_cmd(self.total_step, scores, actor_losses, critic_losses, best_score)
+                    self._plot_cmd(self.total_step, best_score, actor_losses, critic_losses)
 
         self.env.close()
     
@@ -365,19 +385,20 @@ class A2CAgent:
         for cur_frame in range(max_frame):
             if count >= 9:
                 break
-            aim_point, vel, _, _, _, _ = self.update_kart(track, state)
-            obs = np.array((aim_point[0], aim_point[1], vel))
+            aim_point, vel, _, _, _, kart = self.update_kart(track, state)
+            obs = np.array((aim_point[0], aim_point[1], vel, kart.distance_down_track))
 
             steer = self.select_action(obs, test_actor)
             action = rl_control(aim_point, vel, 'steer', steer)
             prev_loc, reward, restarted, done = self.step(state, track, prev_loc, action, aim_point)
 
             next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
-            next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel))
+            # next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel, kart.distance_down_track))
 
             score += reward
 
             if vel < 1.0 and cur_frame - last_rescue > RESCUE_TIMEOUT:
+                # print('rescue', 'cur frame: ', cur_frame, ' last rescue: ', last_rescue)
                 last_rescue = cur_frame
                 restarted = True
             
@@ -387,7 +408,6 @@ class A2CAgent:
                 state.update()
                 track.update()
                 count += 1
-                print('count: ', count)
                 prev_loc = 0
                 cur_frame = 0
 
@@ -396,7 +416,7 @@ class A2CAgent:
                 score = 0
 
             if self.verbose:
-                title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}; Attempt: {}".format(cur_frame, score, best_score, count+1)
+                title = "Time frame: {}; Score: {:.2f}; Attempt: {}".format(cur_frame, score, count+1)
                 ax.clear()
                 ax.set_title(title)
                 ax.imshow(self.env.k.render_data[0].image)
@@ -415,22 +435,20 @@ class A2CAgent:
     def _plot_cmd(
         self, 
         frame_idx: int, 
-        scores: List[float], 
+        score: float,
         actor_losses: List[float], 
-        critic_losses: List[float], 
-        best_score: float, 
+        critic_losses: List[float]
     ):
         print('==========================')
         print('frame: ', frame_idx)
-        print('scores: ', scores[-1])
+        print('scores: ', score)
         print('actor losses: ', actor_losses[-1])
         print('critic losses: ', critic_losses[-1])
-        print('best score: ', best_score)
     
     def _plot(
         self, 
         frame_idx: int, 
-        scores: List[float], 
+        score: float, 
         actor_losses: List[float], 
         critic_losses: List[float], 
     ):
@@ -441,7 +459,7 @@ class A2CAgent:
             plt.plot(values)
 
         subplot_params = [
-            (131, f"frame {frame_idx}. score: {np.mean(scores[-10:])}", scores),
+            (131, f"frame {frame_idx}. score: {score}", score),
             (132, "actor_loss", actor_losses),
             (133, "critic_loss", critic_losses),
         ]
@@ -452,12 +470,12 @@ class A2CAgent:
             subplot(loc, title, values)
         plt.show()
 
-def main(pytux, track, verbose, test):
+def main(pytux, track, verbose=False, test=False, continue_training=False):
     num_frames = 1000000
     gamma = 0.9
     entropy_weight = 1e-2
 
-    agent = A2CAgent(pytux, track, gamma, entropy_weight, verbose=verbose)
+    agent = A2CAgent(pytux, track, gamma, entropy_weight, verbose=verbose, continue_training=continue_training)
     if test:
         agent.test(num_frames)
     else:
@@ -473,6 +491,7 @@ if __name__ == '__main__':
     parser.add_argument('track')
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('-t', '--test', action='store_true')
+    parser.add_argument('-c', '--continue_training', action='store_true')
     args = parser.parse_args()
 
     print(args)
@@ -483,7 +502,8 @@ if __name__ == '__main__':
         track=args.track,
         gamma=gamma,
         entropy_weight=entropy_weight,
-        verbose=args.verbose
+        verbose=args.verbose,
+        continue_training=args.continue_training
     )
 
     if args.test:

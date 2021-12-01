@@ -6,18 +6,20 @@ This is the final project for EC400 of Justin Melville, Jack Halberian, and Wang
 To train RL
 ```
 cd pytuxkart
-python actcri_agent.py <trackname> <optional -v> <optional -t>
+python actcri_agent.py <trackname> <optional -v> <optional -t> <optional -c>
 ```
 example
 ```
 python actcri_agent.py lighthouse -v # running lighthouse with verbose
 python actcri_agent.py zengarden # running zengarden without verbose
 python actcri_agent.py zengarden -t # running zengarden ten times (default) with pre-trained weights
+python actcri_agent.py scotland -c # load pre-trained weights and continue training on scotland
+#### -c cannot be used with -t ####
 ```
 Current RL only train on the steering
 Running without verbose is way faster than running with verbose
 #### Reference
-Code source from here: [Source](https://github.com/MrSyee/pg-is-all-you-need)
+Code source from here: [Source](https://github.com/MrSyee/pg-is-all-you-need) </br>
 Jupyter Notebook: [colab](https://colab.research.google.com/github/MrSyee/pg-is-all-you-need/blob/master/01.A2C.ipynb)
 
 #### Track list
