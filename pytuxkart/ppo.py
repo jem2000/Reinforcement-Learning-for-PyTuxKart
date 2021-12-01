@@ -211,7 +211,7 @@ class PPOAgent:
             continue_training = False
     ):
         """Initialize."""
-        self.env = pytux
+        self.env = env
         self.track = track
         self.gamma = gamma
         self.tau = tau
@@ -228,8 +228,8 @@ class PPOAgent:
         print(self.device)
 
         # networks
-        obs_dim = env.observation_space.shape[0]
-        action_dim = env.action_space.shape[0]
+        obs_dim = 4
+        action_dim = 1
         self.actor = Actor(obs_dim, action_dim).to(self.device)
         self.critic = Critic(obs_dim).to(self.device)
 
@@ -330,14 +330,27 @@ class PPOAgent:
             reward = -30
         return cur_loc, reward / 2, restarted, done
 
+    def update_kart(self, track, state):
+        kart = state.players[0].kart
+        cur_loc = kart.distance_down_track
+
+        proj = np.array(state.players[0].camera.projection).T
+        view = np.array(state.players[0].camera.view).T
+
+        aim_point_world = self.env._point_on_track(cur_loc + TRACK_OFFSET, track)
+        aim_point_image = self.env._to_image(aim_point_world, proj, view)
+        current_vel = (np.linalg.norm(kart.velocity) - 10) / 10
+
+        return aim_point_image, current_vel, aim_point_world, proj, view, kart
+
     def update_model(
-            self, next_state: np.ndarray
+            self, next_obs: np.ndarray
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Update the model by gradient descent."""
         device = self.device  # for shortening the following lines
 
-        next_state = torch.FloatTensor(next_state).to(device)
-        next_value = self.critic(next_state)
+        next_obs = torch.FloatTensor(next_obs).to(device)
+        next_value = self.critic(next_obs)
 
         returns = compute_gae(
             next_value,
@@ -412,7 +425,26 @@ class PPOAgent:
 
         return actor_loss, critic_loss
 
-    def train(self, num_frames: int, plotting_interval: int = 200):
+    def init_track(self, track='lighthouse'):
+        if self.env.k is not None and self.env.k.config.track == track:
+            # print('init restart +++++++++++++++++++++')
+            self.env.k.restart()
+            self.env.k.step()
+        else:
+            if self.env.k is not None:
+                # print('init start +++++++++++++++++++++')
+                self.env.k.stop()
+                del self.env.k
+            config = pystk.RaceConfig(num_kart=1, laps=1, track=track)
+            config.players[0].controller = pystk.PlayerConfig.Controller.PLAYER_CONTROL
+
+            self.env.k = pystk.Race(config)
+            self.env.k.start()
+            self.env.k.step()
+
+        return pystk.WorldState(), pystk.Track()
+
+    def train(self, num_frames: int, plotting_interval: int = 2500):
         """Train the agent."""
         self.is_test = False
 
@@ -420,14 +452,28 @@ class PPOAgent:
         state = np.expand_dims(state, axis=0)
 
         actor_losses, critic_losses = [], []
+        actor_epoch_lossess, critic_epoch_losses = [], []
         scores = []
         score = 0
+        prev_loc = 0
+        best_score = -9999999999999
+        last_rescue = 0
+
+        if self.verbose:
+            # show video
+            fig, ax = plt.subplots(1, 1)
 
         while self.total_step <= num_frames + 1:
             for _ in range(self.rollout_len):
                 self.total_step += 1
-                action = self.select_action(state)
-                next_state, reward, done = self.step(action)
+                aim_point, vel, _, _, _, kart = self.update_kart(track, state)
+                obs = np.array((aim_point[0], aim_point[1], vel, kart.distance_down_track))
+                steer = self.select_action(obs)
+                action = rl_control(aim_point, vel, 'steer', steer)
+                prev_loc, reward, restarted, done = self.step(state, track, prev_loc, action, aim_point)
+
+                next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
+                next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel, kart.distance_down_track))
 
                 state = next_state
                 score += reward[0][0]
