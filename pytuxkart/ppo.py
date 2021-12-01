@@ -199,7 +199,7 @@ class PPOAgent(DeepRL):
     """
 
     def __init__(self, env: pytux, track: track, batch_size: int, gamma: float, tau: float, epsilon: float, epoch: int,
-                 rollout_len: int, entropy_weight: float, pytux, verbose=False, continue_training=False):
+                 rollout_len: int, entropy_weight: float, verbose=False, continue_training=False):
         """Initialize."""
         super().__init__(pytux, track, gamma, entropy_weight)
         self.tau = tau
@@ -444,8 +444,18 @@ class PPOAgent(DeepRL):
                 next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
                 next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel, kart.distance_down_track))
 
-                state = next_state
+                # state = next_state
                 score += reward[0][0]
+
+                if vel < 1.0 and self.total_step - last_rescue > RESCUE_TIMEOUT:
+                    last_rescue = self.total_step
+                    restarted = True
+
+                if restarted:
+                    state, track = self.init_track()
+                    state.update()
+                    track.update()
+                    prev_loc = 0
 
                 # if episode ends
                 if done[0][0]:
@@ -457,10 +467,31 @@ class PPOAgent(DeepRL):
                     self._plot(
                         self.total_step, scores, actor_losses, critic_losses
                     )
+                if self.verbose:
+                    title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(self.total_step, score,
+                                                                                       best_score)
+                    verbose(self, title)
+                    print('observation: ', obs)
+                    print('steering: ', steer)
+                    print('time frame: ', self.total_step)
+                    print('score: ', score, 'reward: ', reward)
+
+                if self.total_step % plotting_interval == 0:
+                    best_score = -9999999999999
+                    self.save_model(self.actor)
+                    if ON_COLAB:
+                        self._plot(self.total_step, best_score, actor_losses, critic_losses)
+                    elif not self.verbose:
+                        self._plot_cmd(self.total_step, best_score, actor_losses, critic_losses)
 
             actor_loss, critic_loss = self.update_model(next_state)
-            actor_losses.append(actor_loss)
-            critic_losses.append(critic_loss)
+            actor_epoch_lossess.append(actor_loss)
+            critic_epoch_losses.append(critic_loss)
+
+            if self.total_step % 200 == 0:
+                actor_losses.append(np.mean(actor_epoch_lossess))
+                critic_losses.append(np.mean(critic_epoch_losses))
+                actor_epoch_lossess, critic_epoch_losses = [], []
 
         # termination
         self.env.close()
@@ -468,21 +499,68 @@ class PPOAgent(DeepRL):
     def test(self):
         """Test the agent."""
         self.is_test = True
+        print('Testing')
 
         state = self.env.reset()
         done = False
         score = 0
+        prev_loc = 0
+        best_score = -9999999999999
+        last_rescue = 0
+        count = 0
 
-        frames = []
-        while not done:
-            frames.append(self.env.render(mode="rgb_array"))
-            action = self.select_action(state)
-            next_state, reward, done = self.step(action)
+        state, track = self.init_track()
+        state.update()
+        track.update()
 
-            state = next_state
+        test_actor = self.load_model().eval()
+
+        if self.verbose:
+            # show video
+            fig, ax = plt.subplots(1, 1)
+
+        for cur_frame in range(max_frame):
+            if count >= 9:
+                break
+            aim_point, vel, _, _, _, kart = self.update_kart(track, state)
+            obs = np.array((aim_point[0], aim_point[1], vel, kart.distance_down_track))
+
+            steer = self.select_action(obs, test_actor)
+            action = rl_control(aim_point, vel, 'steer', steer)
+            prev_loc, reward, restarted, done = self.step(state, track, prev_loc, action, aim_point)
+
+            next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
+            # next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel, kart.distance_down_track))
+
             score += reward
 
-        print("score: ", score)
+            if vel < 1.0 and cur_frame - last_rescue > RESCUE_TIMEOUT:
+                # print('rescue', 'cur frame: ', cur_frame, ' last rescue: ', last_rescue)
+                last_rescue = cur_frame
+                restarted = True
+
+            # if episode ends
+            if restarted:
+                state, track = self.init_track()
+                state.update()
+                track.update()
+                count += 1
+                prev_loc = 0
+                cur_frame = 0
+
+            if done:
+                best_score = score if score > best_score else best_score
+                score = 0
+
+            if self.verbose:
+                title = "Time frame: {}; Score: {:.2f}; Attempt: {}".format(cur_frame, score, count + 1)
+                verbose(self, title)
+                print('observation: ', obs)
+                print('steering: ', steer)
+                print('time frame: ', cur_frame)
+                print('score: ', score, 'reward: ', reward)
+
+        # print("score: ", score)
         self.env.close()
 
         return frames
