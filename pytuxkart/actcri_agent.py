@@ -142,16 +142,6 @@ class A2CAgent(DeepRL):
 
         self.off_track_tolerance = 0
 
-    def save_model(self, model):
-        if isinstance(model, Actor):
-            return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), 'actor.th'))
-        raise ValueError("model type '%s' not supported!" % str(type(model)))
-
-    def load_model(self):
-        r = Actor(self.obs_dim, self.action_dim).to(self.device)
-        r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'actor.th'), map_location='cpu'))
-        return r
-
     def select_action(self, obs: np.ndarray, test_actor=None) -> np.ndarray:
         """Select an action from the input observation."""
         obs = torch.FloatTensor(obs).to(self.device)

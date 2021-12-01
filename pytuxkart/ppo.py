@@ -179,7 +179,7 @@ def ppo_iter(
             ], log_probs[rand_ids], returns[rand_ids], advantages[rand_ids]
 
 
-class PPOAgent:
+class PPOAgent(DeepRL):
     """PPO Agent.
     Attributes:
         env (gym.Env): Gym env for training
@@ -192,46 +192,23 @@ class PPOAgent:
         entropy_weight (float): rate of weighting entropy into the loss function
         actor (nn.Module): target actor model to select actions
         critic (nn.Module): critic model to predict state values
-        transition (list): temporory storage for the recent transition
+        transition (list): temporary storage for the recent transition
         device (torch.device): cpu / gpu
         total_step (int): total step numbers
         is_test (bool): flag to show the current mode (train / test)
     """
 
-    def __init__(
-            self,
-            env: pytux,
-            track: track,
-            batch_size: int,
-            gamma: float,
-            tau: float,
-            epsilon: float,
-            epoch: int,
-            rollout_len: int,
-            entropy_weight: float,
-            verbose = False,
-            continue_training = False
-    ):
+    def __init__(self, env: pytux, track: track, batch_size: int, gamma: float, tau: float, epsilon: float, epoch: int,
+                 rollout_len: int, entropy_weight: float, pytux, verbose=False, continue_training=False):
         """Initialize."""
-        self.env = pytux
-        self.track = track
-        self.gamma = gamma
+        super().__init__(pytux, track, gamma, entropy_weight)
         self.tau = tau
         self.batch_size = batch_size
         self.epsilon = epsilon
         self.epoch = epoch
         self.rollout_len = rollout_len
-        self.entropy_weight = entropy_weight
-
-        # device: cpu / gpu
-        self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        )
-        print(self.device)
 
         # networks
-        obs_dim = env.observation_space.shape[0]
-        action_dim = env.action_space.shape[0]
         self.actor = Actor(obs_dim, action_dim).to(self.device)
         self.critic = Critic(obs_dim).to(self.device)
 
@@ -254,16 +231,6 @@ class PPOAgent:
         self.is_test = False
 
         self.verbose = verbose
-
-    def save_model(self, model):
-        if isinstance(model, Actor):
-            return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), 'ppo.th'))
-        raise ValueError("model type '%s' not supported!" % str(type(model)))
-
-    def load_model(self):
-        r = Actor(self.obs_dim, self.action_dim).to(self.device)
-        r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'ppo.th'), map_location='cpu'))
-        return r
 
     def select_action(self, obs: np.ndarray, test_actor=None) -> np.ndarray:
         """Select an action from the input state."""
