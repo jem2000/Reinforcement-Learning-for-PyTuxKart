@@ -2,53 +2,21 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="bfbd4166-cbea-4ae6-89ef-e9a12bd3655e" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/._homework5_for_python_3" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/._Homework 5_files" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/._bundle.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/._environment.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/._grader" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/._homework" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/._requirements.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/Homework 5_files/._controller.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/Homework 5_files/._cs342.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/Homework 5_files/._data.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/Homework 5_files/._github2.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/Homework 5_files/._planner.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/Homework 5_files/._rouge.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/grader/.___main__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/grader/._grader.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/grader/._tests.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/homework/.___init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/homework/._controller.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/homework/._dense_transforms.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/homework/._planner.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/homework/._train.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/homework/._utils.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/__MACOSX/homework5_for_python_3/homework/._visualize_data.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/Homework 5_files/controller.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/Homework 5_files/cs342.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/Homework 5_files/data.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/Homework 5_files/github2.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/Homework 5_files/planner.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/Homework 5_files/rouge.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/bundle.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/environment.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/grader/__main__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/grader/grader.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/grader/tests.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/homework/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/homework/controller.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/homework/dense_transforms.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/homework/planner.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/homework/train.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/homework/utils.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/homework/visualize_data.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PyTuxKart Framework/homework5_for_python_3/requirements.txt" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/pytuxkart/ppo.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pytuxkart/actor.th" beforeDir="false" afterPath="$PROJECT_DIR$/pytuxkart/actor.th" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -62,6 +30,7 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File" value="Python" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
@@ -74,5 +43,16 @@
       <updated>1637644720090</updated>
     </task>
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
 </project>
