@@ -20,6 +20,9 @@ import argparse
 
 from pytux_utils import DeepRL
 
+RESCUE_TIMEOUT = 30
+TRACK_OFFSET = 15
+
 ON_COLAB = os.environ.get('ON_COLAB', False)
 if ON_COLAB:
     from .controller import rl_control
@@ -208,8 +211,8 @@ class PPOAgent(DeepRL):
         self.rollout_len = rollout_len
 
         # networks
-        self.actor = Actor(obs_dim, action_dim).to(self.device)
-        self.critic = Critic(obs_dim).to(self.device)
+        self.actor = Actor(self.obs_dim, self.action_dim).to(self.device)
+        self.critic = Critic(self.obs_dim).to(self.device)
 
         # optimizer
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=0.001)
@@ -231,9 +234,12 @@ class PPOAgent(DeepRL):
 
         self.verbose = verbose
 
+        # off track
+        self.restart_time = 0
+
     def select_action(self, obs: np.ndarray, test_actor=None) -> np.ndarray:
         """Select an action from the input state."""
-        obs = torch.FloatTensor(state).to(self.device)
+        obs = torch.FloatTensor(obs).to(self.device)
         # action, dist = self.actor(state)
 
         if self.is_test:
@@ -294,7 +300,7 @@ class PPOAgent(DeepRL):
         reward_speed = 0 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 10  # range(-5, 0)
         reward = reward_speed + reward_off
 
-        if (self.total_step - self.restart_time < 5):
+        if self.total_step - self.restart_time < 5:
             reward = -30
         return cur_loc, reward / 2, restarted, done
 
@@ -384,9 +390,6 @@ class PPOAgent(DeepRL):
         """Train the agent."""
         self.is_test = False
 
-        state = self.env.reset()
-        state = np.expand_dims(state, axis=0)
-
         actor_losses, critic_losses = [], []
         actor_epoch_losses, critic_epoch_losses = [], []
         scores = []
@@ -394,6 +397,10 @@ class PPOAgent(DeepRL):
         prev_loc = 0
         best_score = -9999999999999
         last_rescue = 0
+
+        state, track = self.init_track()
+        state.update()
+        track.update()
 
         if self.verbose:
             # show video
@@ -412,7 +419,7 @@ class PPOAgent(DeepRL):
                 next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel, kart.distance_down_track))
 
                 # state = next_state
-                score += reward[0][0]
+                score += reward
 
                 if vel < 1.0 and self.total_step - last_rescue > RESCUE_TIMEOUT:
                     last_rescue = self.total_step
@@ -425,15 +432,13 @@ class PPOAgent(DeepRL):
                     prev_loc = 0
 
                 # if episode ends
-                if done[0][0]:
-                    state = env.reset()
-                    state = np.expand_dims(state, axis=0)
+                if done:
+                    best_score = score if score > best_score else best_score
                     scores.append(score)
                     score = 0
 
-                    self._plot(
-                        self.total_step, scores, actor_losses, critic_losses
-                    )
+                    # self._plot(self.total_step, scores, actor_losses, critic_losses)
+
                 if self.verbose:
                     title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(self.total_step, score,
                                                                                        best_score)
@@ -451,7 +456,7 @@ class PPOAgent(DeepRL):
                     elif not self.verbose:
                         self._plot_cmd(self.total_step, best_score, actor_losses, critic_losses)
 
-            actor_loss, critic_loss = self.update_model(next_state)
+            actor_loss, critic_loss = self.update_model(next_obs)
             actor_epoch_losses.append(actor_loss)
             critic_epoch_losses.append(critic_loss)
 
@@ -463,13 +468,11 @@ class PPOAgent(DeepRL):
         # termination
         self.env.close()
 
-    def test(self):
+    def test(self, max_frame):
         """Test the agent."""
         self.is_test = True
         print('Testing')
 
-        state = self.env.reset()
-        done = False
         score = 0
         prev_loc = 0
         best_score = -9999999999999
@@ -480,7 +483,7 @@ class PPOAgent(DeepRL):
         state.update()
         track.update()
 
-        test_actor = self.load_model().eval()
+        test_actor = self.load_model(Actor).eval()
 
         if self.verbose:
             # show video
@@ -587,3 +590,51 @@ class ActionNormalizer(gym.ActionWrapper):
         action = np.clip(action, -1.0, 1.0)
 
         return action
+
+
+def main(pytux, track, verbose=False, test=False, continue_training=False):
+    num_frames = 1000000
+    gamma = 0.9
+    entropy_weight = 1e-2
+
+    agent = PPOAgent(pytux, track, gamma, entropy_weight, verbose=verbose, continue_training=continue_training)
+    if test:
+        agent.test(num_frames)
+    else:
+        agent.train(num_frames)
+
+
+if __name__ == '__main__':
+
+    num_frames = 1000000
+    gamma = 0.9
+    entropy_weight = 1e-2
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('track')
+    parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('-t', '--test', action='store_true')
+    parser.add_argument('-c', '--continue_training', action='store_true')
+    args = parser.parse_args()
+
+    print(args)
+
+    pytux = utils.PyTux()
+    agent = PPOAgent(
+        pytux=pytux,
+        track=args.track,
+        gamma=gamma,
+        entropy_weight=entropy_weight,
+        verbose=args.verbose,
+        continue_training=args.continue_training,
+        batch_size=4,
+        tau=0.9,
+        epoch=3,
+        epsilon=0.1,
+        rollout_len=1
+    )
+
+    if args.test:
+        agent.test(num_frames)
+    else:
+        agent.train(num_frames)

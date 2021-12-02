@@ -99,21 +99,6 @@ class A2CAgent(DeepRL):
 
     def __init__(self, pytux, track, gamma: float, entropy_weight: float, verbose=False, continue_training=False,
                  screen_width=128, screen_height=96):
-        # """Initialize."""
-        # self.env = pytux
-        # self.track = track
-        # self.gamma = gamma
-        # self.entropy_weight = entropy_weight
-        #
-        # # device: cpu / gpu
-        # self.device = torch.device(
-        #     "cuda" if torch.cuda.is_available() else "cpu"
-        # )
-        # print(self.device)
-        #
-        # # networks
-        # self.obs_dim = 4
-        # self.action_dim = 1
         super().__init__(pytux, track, gamma, entropy_weight)
         self.actor = Actor(self.obs_dim, self.action_dim).to(self.device)
         if continue_training:
