@@ -367,19 +367,6 @@ class A2CAgent(DeepRL):
         # print("score: ", score)
         self.env.close()
 
-    def _plot_cmd(
-            self,
-            frame_idx: int,
-            score: float,
-            actor_losses: List[float],
-            critic_losses: List[float]
-    ):
-        print('==========================')
-        print('frame: ', frame_idx)
-        print('scores: ', score)
-        print('actor losses: ', actor_losses[-1])
-        print('critic losses: ', critic_losses[-1])
-
     def _plot(
             self,
             frame_idx: int,

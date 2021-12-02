@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pystk
@@ -82,3 +84,16 @@ class DeepRL:
         r = Actor(self.obs_dim, self.action_dim).to(self.device)
         r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'actor.th'), map_location='cpu'))
         return r
+
+    def _plot_cmd(
+            self,
+            frame_idx: int,
+            score: float,
+            actor_losses: List[float],
+            critic_losses: List[float]
+    ):
+        print('==========================')
+        print('frame: ', frame_idx)
+        print('scores: ', score)
+        print('actor losses: ', actor_losses[-1])
+        print('critic losses: ', critic_losses[-1])

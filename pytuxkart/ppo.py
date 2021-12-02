@@ -1,6 +1,7 @@
-import random
+import base64
+import io
 from collections import deque
-from typing import List, Tuple, Deque, Dict
+from typing import List, Tuple, Deque
 
 import gym
 import matplotlib.pyplot as plt
@@ -9,13 +10,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import pystk
 from IPython.display import clear_output
 from torch.distributions import Normal
-from torch import save
 import os
-from torch import load
-from os import path
 import argparse
 
 from pytux_utils import DeepRL
@@ -151,9 +148,7 @@ def compute_gae(
 
     for step in reversed(range(len(rewards))):
         delta = (
-                rewards[step]
-                + gamma * values[step + 1] * masks[step]
-                - values[step]
+                rewards[step] + gamma * values[step + 1] * masks[step] - values[step]
         )
         gae = delta + gamma * tau * masks[step] * gae
         returns.appendleft(gae + values[step])
@@ -237,6 +232,8 @@ class PPOAgent(DeepRL):
         # off track
         self.restart_time = 0
 
+        self.off_track_tolerance = 0
+
     def select_action(self, obs: np.ndarray, test_actor=None) -> np.ndarray:
         """Select an action from the input state."""
         obs = torch.FloatTensor(obs).to(self.device)
@@ -304,9 +301,7 @@ class PPOAgent(DeepRL):
             reward = -30
         return cur_loc, reward / 2, restarted, done
 
-    def update_model(
-            self, next_obs: np.ndarray
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def update_model(self, next_obs: np.ndarray) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update the model by gradient descent."""
         device = self.device  # for shortening the following lines
 
@@ -322,7 +317,7 @@ class PPOAgent(DeepRL):
             self.tau,
         )
 
-        states = torch.cat(self.states).view(-1, 3)
+        states = torch.cat(self.states).view(32, 256)
         actions = torch.cat(self.actions)
         returns = torch.cat(returns).detach()
         values = torch.cat(self.values).detach()
@@ -348,17 +343,14 @@ class PPOAgent(DeepRL):
 
             # actor_loss
             surr_loss = ratio * adv
-            clipped_surr_loss = (
-                    torch.clamp(ratio, 1.0 - self.epsilon, 1.0 + self.epsilon) * adv
-            )
+            clipped_surr_loss = (torch.clamp(ratio, 1.0 - self.epsilon, 1.0 + self.epsilon) * adv)
 
             # entropy
             entropy = dist.entropy().mean()
 
             actor_loss = (
                     -torch.min(surr_loss, clipped_surr_loss).mean()
-                    - entropy * self.entropy_weight
-            )
+                    - entropy * self.entropy_weight)
 
             # critic_loss
             value = self.critic(state)
@@ -437,12 +429,12 @@ class PPOAgent(DeepRL):
                     scores.append(score)
                     score = 0
 
-                    # self._plot(self.total_step, scores, actor_losses, critic_losses)
+                    self._plot(self.total_step, scores, actor_losses, critic_losses)
 
                 if self.verbose:
                     title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(self.total_step, score,
                                                                                        best_score)
-                    verbose(self, title, kart, ax, proj, view, aim_point_world)
+                    DeepRL.verbose(self, title, kart, ax, proj, view, aim_point_world)
                     print('observation: ', obs)
                     print('steering: ', steer)
                     print('time frame: ', self.total_step)
@@ -450,7 +442,7 @@ class PPOAgent(DeepRL):
 
                 if self.total_step % plotting_interval == 0:
                     best_score = -9999999999999
-                    self.save_model(self.actor)
+                    self.save_model(self.actor, Actor)
                     if ON_COLAB:
                         self._plot(self.total_step, best_score, actor_losses, critic_losses)
                     elif not self.verbose:
@@ -524,7 +516,7 @@ class PPOAgent(DeepRL):
 
             if self.verbose:
                 title = "Time frame: {}; Score: {:.2f}; Attempt: {}".format(cur_frame, score, count + 1)
-                verbose(self, title, kart, ax, proj, view, aim_point_world)
+                DeepRL.verbose(self, title, kart, ax, proj, view, aim_point_world)
                 print('observation: ', obs)
                 print('steering: ', steer)
                 print('time frame: ', cur_frame)
@@ -532,8 +524,6 @@ class PPOAgent(DeepRL):
 
         # print("score: ", score)
         self.env.close()
-
-        return frames
 
     def _plot(
             self,
@@ -627,11 +617,11 @@ if __name__ == '__main__':
         entropy_weight=entropy_weight,
         verbose=args.verbose,
         continue_training=args.continue_training,
-        batch_size=4,
-        tau=0.9,
-        epoch=3,
-        epsilon=0.1,
-        rollout_len=1
+        tau=0.8,
+        batch_size=64,
+        epsilon=0.2,
+        epoch=64,
+        rollout_len=2048,
     )
 
     if args.test:
