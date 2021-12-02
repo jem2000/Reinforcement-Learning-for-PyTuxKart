@@ -261,6 +261,7 @@ class PPOAgent(DeepRL):
         restarted = False
         done = False
         self.env.k.step(action)
+        rewardArray = []
 
         state.update()
         track.update()
@@ -299,6 +300,13 @@ class PPOAgent(DeepRL):
 
         if self.total_step - self.restart_time < 5:
             reward = -30
+
+        rewardArray.append(reward)
+
+        if not self.is_test:
+            self.rewards.append(torch.FloatTensor(rewardArray).to(self.device))
+            self.masks.append(torch.FloatTensor(1 - done).to(self.device))
+
         return cur_loc, reward / 2, restarted, done
 
     def update_model(self, next_obs: np.ndarray) -> Tuple[torch.Tensor, torch.Tensor]:
