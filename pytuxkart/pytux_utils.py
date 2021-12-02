@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import pystk
 import torch
 from torch import save
@@ -29,7 +30,7 @@ class DeepRL:
         self.obs_dim = 4
         self.action_dim = 1
 
-    def verbose(self, title):
+    def verbose(self, title, kart, ax, proj, view, aim_point_world):
         ax.clear()
         ax.set_title(title)
         ax.imshow(self.env.k.render_data[0].image)

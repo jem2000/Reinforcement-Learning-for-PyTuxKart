@@ -388,7 +388,7 @@ class PPOAgent(DeepRL):
         state = np.expand_dims(state, axis=0)
 
         actor_losses, critic_losses = [], []
-        actor_epoch_lossess, critic_epoch_losses = [], []
+        actor_epoch_losses, critic_epoch_losses = [], []
         scores = []
         score = 0
         prev_loc = 0
@@ -437,7 +437,7 @@ class PPOAgent(DeepRL):
                 if self.verbose:
                     title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(self.total_step, score,
                                                                                        best_score)
-                    verbose(self, title)
+                    verbose(self, title, kart, ax, proj, view, aim_point_world)
                     print('observation: ', obs)
                     print('steering: ', steer)
                     print('time frame: ', self.total_step)
@@ -452,13 +452,13 @@ class PPOAgent(DeepRL):
                         self._plot_cmd(self.total_step, best_score, actor_losses, critic_losses)
 
             actor_loss, critic_loss = self.update_model(next_state)
-            actor_epoch_lossess.append(actor_loss)
+            actor_epoch_losses.append(actor_loss)
             critic_epoch_losses.append(critic_loss)
 
             if self.total_step % 200 == 0:
-                actor_losses.append(np.mean(actor_epoch_lossess))
+                actor_losses.append(np.mean(actor_epoch_losses))
                 critic_losses.append(np.mean(critic_epoch_losses))
-                actor_epoch_lossess, critic_epoch_losses = [], []
+                actor_epoch_losses, critic_epoch_losses = [], []
 
         # termination
         self.env.close()
@@ -521,7 +521,7 @@ class PPOAgent(DeepRL):
 
             if self.verbose:
                 title = "Time frame: {}; Score: {:.2f}; Attempt: {}".format(cur_frame, score, count + 1)
-                verbose(self, title)
+                verbose(self, title, kart, ax, proj, view, aim_point_world)
                 print('observation: ', obs)
                 print('steering: ', steer)
                 print('time frame: ', cur_frame)
