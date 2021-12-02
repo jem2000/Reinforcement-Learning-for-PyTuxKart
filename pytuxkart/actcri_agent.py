@@ -332,7 +332,7 @@ class A2CAgent(DeepRL):
         state.update()
         track.update()
 
-        test_actor = self.load_model().eval()
+        test_actor = self.load_model(Actor).eval()
 
         if self.verbose:
             # show video

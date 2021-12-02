@@ -2,6 +2,7 @@ import numpy as np
 import pystk
 import torch
 from torch import save
+from torch import load
 from os import path
 
 from torch.utils.data import Dataset, DataLoader
@@ -76,7 +77,7 @@ class DeepRL:
             return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), 'actor.th'))
         raise ValueError("model type '%s' not supported!" % str(type(model)))
 
-    def load_model(self):
+    def load_model(self, Actor):
         r = Actor(self.obs_dim, self.action_dim).to(self.device)
         r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'actor.th'), map_location='cpu'))
         return r
