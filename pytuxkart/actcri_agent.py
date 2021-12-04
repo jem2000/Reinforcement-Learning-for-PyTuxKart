@@ -17,16 +17,19 @@ from torch import load
 from os import path
 import argparse
 
-from pytux_utils import DeepRL
+
 
 RESCUE_TIMEOUT = 30
 TRACK_OFFSET = 15
 ON_COLAB = os.environ.get('ON_COLAB', False)
 if ON_COLAB:
     from .controller import rl_control
+    from .pytux_utils import DeepRL
     from . import utils
+
 else:
     from controller import rl_control
+    from pytux_utils import DeepRL
     import utils
 
 
@@ -172,18 +175,27 @@ class A2CAgent(DeepRL):
             done = True
 
         cur_loc = kart.distance_down_track
+
         # print('distance down track: ', cur_loc)
         speed_threshold = 0.5
         abs_aim = abs(aim_point[0])
         loc_change = (cur_loc - prev_loc) if abs(cur_loc - prev_loc) < 2.5 else 0
+        # if loc_change <= 0:
+        #     reward_speed = -100
+        # else:
+        #     reward_speed = loc_change * 10
+        forward_distance = cur_loc - prev_loc
+
         # print('off: ', abs_aim)
         # print('loc: ', cur_loc - prev_loc, 'cur_loc: ', cur_loc, 'prev_loc', prev_loc)
         reward_off = - abs_aim * 30  # range (-25, 0)
-        reward_speed = 0 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 10  # range(-5, 0)
+        reward_speed = forward_distance * 5 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 10  # range(-5, 0)
         reward = reward_speed + reward_off
 
         if self.total_step - self.restart_time < 5:
             reward = -30
+        if restarted:
+            reward -= 10000000
         return cur_loc, reward / 2, restarted, done
 
     def update_model(self) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -293,7 +305,7 @@ class A2CAgent(DeepRL):
                 print('score: ', score, 'reward: ', reward)
 
             if self.total_step % plotting_interval == 0:
-                best_score = -9999999999999
+                # best_score = -9999999999999
                 self.save_model(self.actor, Actor)
                 if ON_COLAB:
                     self._plot(self.total_step, best_score, actor_losses, critic_losses)
