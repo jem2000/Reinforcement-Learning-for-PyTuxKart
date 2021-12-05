@@ -43,7 +43,7 @@ class DeepRL:
             plt.Circle(WH2 * (1 + self.env.to_image(aim_point_world, proj, view)), 2, ec='r', fill=False, lw=1.5))
         plt.pause(1e-3)
 
-    def init_track(self, track='zengarden'):
+    def init_track(self, track='lighthouse'):
         if self.env.k is not None and self.env.k.config.track == track:
             # print('init restart +++++++++++++++++++++')
             self.env.k.restart()

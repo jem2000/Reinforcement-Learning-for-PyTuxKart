@@ -31,21 +31,21 @@ else:
     from IPython.display import HTML, display
 
 
-    def ipython_show_video(path: str) -> None:
-        """Show a video at `path` within IPython Notebook."""
-        if not os.path.isfile(path):
-            raise NameError("Cannot access: {}".format(path))
+def ipython_show_video(path: str) -> None:
+    """Show a video at `path` within IPython Notebook."""
+    if not os.path.isfile(path):
+        raise NameError("Cannot access: {}".format(path))
 
-        video = io.open(path, "r+b").read()
-        encoded = base64.b64encode(video)
+    video = io.open(path, "r+b").read()
+    encoded = base64.b64encode(video)
 
-        display(HTML(
-            data="""
-            <video alt="test" controls>
-            <source src="data:video/mp4;base64,{0}" type="video/mp4"/>
-            </video>
-            """.format(encoded.decode("ascii"))
-        ))
+    display(HTML(
+        data="""
+        <video alt="test" controls>
+        <source src="data:video/mp4;base64,{0}" type="video/mp4"/>
+        </video>
+        """.format(encoded.decode("ascii"))
+    ))
 
     # list_of_files = glob.glob("videos/*.mp4")
     # latest_file = max(list_of_files, key=os.path.getctime)
@@ -80,11 +80,11 @@ def init_layer_uniform(layer: nn.Linear, init_w: float = 3e-3) -> nn.Linear:
 
 class Actor(nn.Module):
     def __init__(
-            self,
-            in_dim: int,
-            out_dim: int,
-            log_std_min: int = -20,
-            log_std_max: int = 0,
+        self, 
+        in_dim: int, 
+        out_dim: int, 
+        log_std_min: int = -20,
+        log_std_max: int = 0,
     ):
         """Initialize."""
         super(Actor, self).__init__()
@@ -102,11 +102,11 @@ class Actor(nn.Module):
     def forward(self, state: torch.Tensor) -> torch.Tensor:
         """Forward method implementation."""
         x = F.relu(self.hidden(state))
-
+        
         mu = torch.tanh(self.mu_layer(x))
         log_std = torch.tanh(self.log_std_layer(x))
         log_std = self.log_std_min + 0.5 * (
-                self.log_std_max - self.log_std_min
+            self.log_std_max - self.log_std_min
         ) * (log_std + 1)
         std = torch.exp(log_std)
 
@@ -261,7 +261,6 @@ class PPOAgent(DeepRL):
         restarted = False
         done = False
         self.env.k.step(action)
-        rewardArray = []
 
         state.update()
         track.update()
@@ -289,29 +288,31 @@ class PPOAgent(DeepRL):
 
         cur_loc = kart.distance_down_track
         # print('distance down track: ', cur_loc)
-        speed_threshold = 0.5
+        speed_threshold = 0.4
         abs_aim = abs(aim_point[0])
         loc_change = (cur_loc - prev_loc) if abs(cur_loc - prev_loc) < 2.5 else 0
         # print('off: ', abs_aim)
         # print('loc: ', cur_loc - prev_loc, 'cur_loc: ', cur_loc, 'prev_loc', prev_loc)
-        reward_off = - abs_aim * 30  # range (-25, 0)
-        reward_speed = 0 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 10  # range(-5, 0)
+        reward_off = - abs_aim * 20  # range (-20, 0)
+        reward_speed = 0 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 6.25  # range(-10, 0)
         reward = reward_speed + reward_off
 
         if self.total_step - self.restart_time < 5:
             reward = -30
 
-        rewardArray.append(reward)
+        reward = np.reshape(reward/2, (1, -1)).astype(np.float64)
+        restarted = np.reshape(restarted, (1, -1))
 
         if not self.is_test:
-            self.rewards.append(torch.FloatTensor(rewardArray).to(self.device))
-            self.masks.append(torch.FloatTensor(1 - done).to(self.device))
+            self.rewards.append(torch.FloatTensor().to(self.device))
+            self.masks.append(torch.FloatTensor(1 - restarted).to(self.device))
 
-        return cur_loc, reward / 2, restarted, done
+        return cur_loc, reward, restarted, done
 
     def update_model(self, next_obs: np.ndarray) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update the model by gradient descent."""
         device = self.device  # for shortening the following lines
+
 
         next_obs = torch.FloatTensor(next_obs).to(device)
         next_value = self.critic(next_obs)
@@ -325,7 +326,7 @@ class PPOAgent(DeepRL):
             self.tau,
         )
 
-        states = torch.cat(self.states).view(32, 256)
+        states = torch.cat(self.states).view(-1, 4)
         actions = torch.cat(self.actions)
         returns = torch.cat(returns).detach()
         values = torch.cat(self.values).detach()
@@ -333,6 +334,11 @@ class PPOAgent(DeepRL):
         advantages = returns - values
 
         actor_losses, critic_losses = [], []
+
+        print("states===================")
+        print(states)
+        print("returns===================")
+        print(returns)
 
         for state, action, old_value, old_log_prob, return_, adv in ppo_iter(
                 epoch=self.epoch,
@@ -417,7 +423,7 @@ class PPOAgent(DeepRL):
 
                 next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
                 next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel, kart.distance_down_track))
-
+                next_obs = np.reshape(next_obs, (1, -1)).astype(np.float64)
                 # state = next_state
                 score += reward
 
@@ -440,7 +446,7 @@ class PPOAgent(DeepRL):
                     self._plot(self.total_step, scores, actor_losses, critic_losses)
 
                 if self.verbose:
-                    title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(self.total_step, score,
+                    title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(self.total_step, score[0][0],
                                                                                        best_score)
                     DeepRL.verbose(self, title, kart, ax, proj, view, aim_point_world)
                     print('observation: ', obs)
