@@ -75,14 +75,14 @@ class DeepRL:
 
         return aim_point_image, current_vel, aim_point_world, proj, view, kart
 
-    def save_model(self, model, Actor):
+    def save_model(self, model, Actor, filename):
         if isinstance(model, Actor):
-            return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), 'actor.th'))
+            return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), filename))
         raise ValueError("model type '%s' not supported!" % str(type(model)))
 
-    def load_model(self, Actor):
+    def load_model(self, Actor, filename):
         r = Actor(self.obs_dim, self.action_dim).to(self.device)
-        r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'actor.th'), map_location='cpu'))
+        r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), filename), map_location='cpu'))
         return r
 
     def _plot_cmd(

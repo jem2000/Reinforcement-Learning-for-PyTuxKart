@@ -304,7 +304,7 @@ class PPOAgent(DeepRL):
         restarted = np.reshape(restarted, (1, -1))
 
         if not self.is_test:
-            self.rewards.append(torch.FloatTensor().to(self.device))
+            self.rewards.append(torch.FloatTensor(reward).to(self.device))
             self.masks.append(torch.FloatTensor(1 - restarted).to(self.device))
 
         return cur_loc, reward, restarted, done
@@ -329,16 +329,20 @@ class PPOAgent(DeepRL):
         states = torch.cat(self.states).view(-1, 4)
         actions = torch.cat(self.actions)
         returns = torch.cat(returns).detach()
-        values = torch.cat(self.values).detach()
+        values = torch.cat(self.values).view(-1, 1).detach()
         log_probs = torch.cat(self.log_probs).detach()
         advantages = returns - values
 
+        # print('values', values.shape)
+        # print('returns', returns.shape)
+        # print('advantages', advantages.shape)
+
         actor_losses, critic_losses = [], []
 
-        print("states===================")
-        print(states)
-        print("returns===================")
-        print(returns)
+        # print("states===================")
+        # print(states)
+        # print("returns===================")
+        # print(returns)
 
         for state, action, old_value, old_log_prob, return_, adv in ppo_iter(
                 epoch=self.epoch,
@@ -354,7 +358,7 @@ class PPOAgent(DeepRL):
             _, dist = self.actor(state)
             log_prob = dist.log_prob(action)
             ratio = (log_prob - old_log_prob).exp()
-
+            
             # actor_loss
             surr_loss = ratio * adv
             clipped_surr_loss = (torch.clamp(ratio, 1.0 - self.epsilon, 1.0 + self.epsilon) * adv)
@@ -389,6 +393,9 @@ class PPOAgent(DeepRL):
 
         actor_loss = sum(actor_losses) / len(actor_losses)
         critic_loss = sum(critic_losses) / len(critic_losses)
+
+        print('actor_loss', actor_loss)
+        print('critic_loss', critic_loss)
 
         return actor_loss, critic_loss
 
@@ -445,6 +452,8 @@ class PPOAgent(DeepRL):
 
                     self._plot(self.total_step, scores, actor_losses, critic_losses)
 
+                # print(self.total_step)
+
                 if self.verbose:
                     title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(self.total_step, score[0][0],
                                                                                        best_score)
@@ -454,22 +463,18 @@ class PPOAgent(DeepRL):
                     print('time frame: ', self.total_step)
                     print('score: ', score, 'reward: ', reward)
 
-                if self.total_step % plotting_interval == 0:
-                    best_score = -9999999999999
-                    self.save_model(self.actor, Actor)
-                    if ON_COLAB:
-                        self._plot(self.total_step, best_score, actor_losses, critic_losses)
-                    elif not self.verbose:
-                        self._plot_cmd(self.total_step, best_score, actor_losses, critic_losses)
-
             actor_loss, critic_loss = self.update_model(next_obs)
             actor_epoch_losses.append(actor_loss)
             critic_epoch_losses.append(critic_loss)
 
-            if self.total_step % 200 == 0:
-                actor_losses.append(np.mean(actor_epoch_losses))
-                critic_losses.append(np.mean(critic_epoch_losses))
-                actor_epoch_losses, critic_epoch_losses = [], []
+            actor_losses.append(np.mean(actor_epoch_losses))
+            critic_losses.append(np.mean(critic_epoch_losses))
+            actor_epoch_losses, critic_epoch_losses = [], []
+            self.save_model(self.actor, Actor, 'ppo.th')
+            if ON_COLAB:
+                self._plot(self.total_step, best_score, actor_losses, critic_losses)
+            elif not self.verbose:
+                self._plot_cmd(self.total_step, best_score, actor_losses, critic_losses)
 
         # termination
         self.env.close()
@@ -489,7 +494,7 @@ class PPOAgent(DeepRL):
         state.update()
         track.update()
 
-        test_actor = self.load_model(Actor).eval()
+        test_actor = self.load_model(Actor, 'ppo.th').eval()
 
         if self.verbose:
             # show video
@@ -500,14 +505,11 @@ class PPOAgent(DeepRL):
                 break
             aim_point, vel, _, _, _, kart = self.update_kart(track, state)
             obs = np.array((aim_point[0], aim_point[1], vel, kart.distance_down_track))
-
             steer = self.select_action(obs, test_actor)
             action = rl_control(aim_point, vel, 'steer', steer)
             prev_loc, reward, restarted, done = self.step(state, track, prev_loc, action, aim_point)
 
             next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
-            # next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel, kart.distance_down_track))
-
             score += reward
 
             if vel < 1.0 and cur_frame - last_rescue > RESCUE_TIMEOUT:
@@ -529,7 +531,8 @@ class PPOAgent(DeepRL):
                 score = 0
 
             if self.verbose:
-                title = "Time frame: {}; Score: {:.2f}; Attempt: {}".format(cur_frame, score, count + 1)
+                title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(self.total_step, score[0][0],
+                                                                                    count + 1)
                 DeepRL.verbose(self, title, kart, ax, proj, view, aim_point_world)
                 print('observation: ', obs)
                 print('steering: ', steer)
