@@ -22,7 +22,6 @@ TRACK_OFFSET = 15
 
 starting_frames = 0
 reset_frames = 0
-post_rescue_frames = 100
 
 ON_COLAB = os.environ.get('ON_COLAB', False)
 if ON_COLAB:
@@ -289,7 +288,6 @@ class PPOAgent(DeepRL):
                 if self.verbose:
                     print('off_track restarted ****************')
                 action.rescue = True
-                starting_frames = 0
 
         elif end_track:
             if self.verbose:
@@ -441,21 +439,21 @@ class PPOAgent(DeepRL):
                 steer = self.select_action(obs)
                 # accel = self.select_action(obs)
                 accel = None
-                print("starting frames is ", starting_frames)
+                # print("starting frames is ", starting_frames)
                 if starting_frames < TRACK_OFFSET:
-                    print("Using controller")
+                    # print("Using controller")
                     action = control(aim_point, vel)
                 else:
-                    print("Using RL")
+                    # print("Using RL")
                     action = rl_control(aim_point, vel, 'steer', steer, 'acceleration', accel)
 
                 rescue = False
-                print("vel is ", vel)
+                # print("vel is ", vel)
                 if vel < 0.5:
                     reset_frames += 1
                 else:
                     reset_frames = 0
-                    print("total_step is", self.total_step)
+                    # print("total_step is", self.total_step)
                 if reset_frames > RESCUE_TIMEOUT and self.total_step - last_rescue > RESCUE_TIMEOUT:
                     last_rescue = self.total_step
                     action.rescue = True
@@ -552,13 +550,13 @@ class PPOAgent(DeepRL):
             else:
                 action = rl_control(aim_point, vel, 'steer', steer, 'acceleration', accel)
 
-            print("vel is ", vel, ", total step is ", self.total_step, ", last rescue is ", last_rescue)
+            print("vel is ", vel, ", cur frame is ", cur_frame, ", last rescue is ", last_rescue)
             if vel < 0.5:
                 reset_frames += 1
             else:
                 reset_frames = 0
-            if reset_frames > RESCUE_TIMEOUT:
-                last_rescue = self.total_step
+            if reset_frames > RESCUE_TIMEOUT and cur_frame - last_rescue > RESCUE_TIMEOUT:
+                last_rescue = cur_frame
                 action.rescue = True
                 rescue = True
                 starting_frames = 0
@@ -583,7 +581,7 @@ class PPOAgent(DeepRL):
                 score = 0
 
             if self.verbose:
-                title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(self.total_step, score[0][0],
+                title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(cur_frame, score[0][0],
                                                                                     count + 1)
                 DeepRL.verbose(self, title, kart, ax, proj, view, aim_point_world)
                 print('observation: ', obs)
