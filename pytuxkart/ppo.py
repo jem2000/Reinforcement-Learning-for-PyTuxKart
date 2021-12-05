@@ -17,15 +17,20 @@ import argparse
 
 from pytux_utils import DeepRL
 
-RESCUE_TIMEOUT = 30
+RESCUE_TIMEOUT = 100
 TRACK_OFFSET = 15
+
+starting_frames = 0
+reset_frames = 0
 
 ON_COLAB = os.environ.get('ON_COLAB', False)
 if ON_COLAB:
     from .controller import rl_control
+    from .controller import control
     from . import utils
 else:
     from controller import rl_control
+    from controller import control
     import utils
 
     from IPython.display import HTML, display
@@ -258,6 +263,9 @@ class PPOAgent(DeepRL):
 
     def step(self, state, track, prev_loc, action, aim_point):
         """Take an action and return the response of the env."""
+        global starting_frames
+        starting_frames += 1
+
         restarted = False
         done = False
         self.env.k.step(action)
@@ -280,11 +288,14 @@ class PPOAgent(DeepRL):
                 if self.verbose:
                     print('off_track restarted ****************')
                 restarted = True
+                starting_frames = 0
+
         elif end_track:
             if self.verbose:
                 print('end_track restarted ****************')
             restarted = True
             done = True
+            starting_frames = 0
 
         cur_loc = kart.distance_down_track
         # print('distance down track: ', cur_loc)
@@ -297,8 +308,8 @@ class PPOAgent(DeepRL):
         reward_speed = 0 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 6.25  # range(-10, 0)
         reward = reward_speed + reward_off
 
-        if self.total_step - self.restart_time < 5:
-            reward = -30
+        # if self.total_step - self.restart_time < 5:
+        #     reward = -30
 
         reward = np.reshape(reward/2, (1, -1)).astype(np.float64)
         restarted = np.reshape(restarted, (1, -1))
@@ -401,6 +412,8 @@ class PPOAgent(DeepRL):
 
     def train(self, num_frames: int, plotting_interval: int = 2500):
         """Train the agent."""
+        global starting_frames
+        global reset_frames
         self.is_test = False
 
         actor_losses, critic_losses = [], []
@@ -425,8 +438,28 @@ class PPOAgent(DeepRL):
                 aim_point, vel, _, _, _, kart = self.update_kart(track, state)
                 obs = np.array((aim_point[0], aim_point[1], vel, kart.distance_down_track))
                 steer = self.select_action(obs)
-                action = rl_control(aim_point, vel, 'steer', steer)
+                # accel = self.select_action(obs)
+                accel = None
+                if starting_frames < RESCUE_TIMEOUT:
+                    action = control(aim_point, vel)
+                else:
+                    action = rl_control(aim_point, vel, 'steer', steer, 'acceleration', accel)
+
+                rescue = False
+                # print("vel is ", vel)
+                if vel < 0.5:
+                    reset_frames += 1
+                else:
+                    reset_frames = 0
+                if reset_frames > RESCUE_TIMEOUT:
+                    last_rescue = self.total_step
+                    action.rescue = True
+                    rescue = True
+                    starting_frames = 0
+
                 prev_loc, reward, restarted, done = self.step(state, track, prev_loc, action, aim_point)
+                if rescue:
+                    reward = -15
 
                 next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
                 next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel, kart.distance_down_track))
@@ -434,15 +467,14 @@ class PPOAgent(DeepRL):
                 # state = next_state
                 score += reward
 
-                if vel < 1.0 and self.total_step - last_rescue > RESCUE_TIMEOUT:
-                    last_rescue = self.total_step
-                    restarted = True
+
 
                 if restarted:
                     state, track = self.init_track()
                     state.update()
                     track.update()
                     prev_loc = 0
+                    starting_frames = 0
 
                 # if episode ends
                 if done:
@@ -481,6 +513,8 @@ class PPOAgent(DeepRL):
 
     def test(self, max_frame):
         """Test the agent."""
+        global starting_frames
+        global reset_frames
         self.is_test = True
         print('Testing')
 
@@ -506,16 +540,29 @@ class PPOAgent(DeepRL):
             aim_point, vel, _, _, _, kart = self.update_kart(track, state)
             obs = np.array((aim_point[0], aim_point[1], vel, kart.distance_down_track))
             steer = self.select_action(obs, test_actor)
-            action = rl_control(aim_point, vel, 'steer', steer)
+            accel = None
+            # accel = self.select_action(obs, test_actor)
+            if starting_frames < RESCUE_TIMEOUT:
+                action = control(aim_point, vel)
+            else:
+                action = rl_control(aim_point, vel, 'steer', steer, 'acceleration', accel)
+
+            print("vel is ", vel, ", total step is ", self.total_step, ", last rescue is ", last_rescue)
+            if vel < 0.5:
+                reset_frames += 1
+            else:
+                reset_frames = 0
+            if reset_frames > RESCUE_TIMEOUT:
+                last_rescue = self.total_step
+                action.rescue = True
+                rescue = True
+                starting_frames = 0
+
             prev_loc, reward, restarted, done = self.step(state, track, prev_loc, action, aim_point)
 
             next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
             score += reward
 
-            if vel < 1.0 and cur_frame - last_rescue > RESCUE_TIMEOUT:
-                # print('rescue', 'cur frame: ', cur_frame, ' last rescue: ', last_rescue)
-                last_rescue = cur_frame
-                restarted = True
 
             # if episode ends
             if restarted:

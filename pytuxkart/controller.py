@@ -7,7 +7,7 @@ def acc_control(current_vel, aim_point):
     acc = (-(0.94 * turn_index ** 2) + 1) * base_acc
     brake = True if (turn_index * current_vel ** 2 > 86) else False
     acc = acc if not brake else 0
-    return acc, brake
+    return acc / 2, brake
 
 
 def steering_control(aim_point):
@@ -23,7 +23,8 @@ def nitro_control(aim_point, current_vel):
     else:
         return False
 
-def rl_control(aim_point, current_vel, override, override_val):
+
+def rl_control(aim_point, current_vel, override, override_val, override2, override_val2):
     action = pystk.Action()
 
     action.steer, action.drift = steering_control(aim_point)
@@ -31,9 +32,11 @@ def rl_control(aim_point, current_vel, override, override_val):
     action.nitro = nitro_control(aim_point, current_vel)
     action.brake = brake or action.drift
 
-    setattr(action,override,override_val)
-    
+    setattr(action, override, override_val)
+    # setattr(action, override2, (override_val2 + 1) * 0.5)
+
     return action
+
 
 def control(aim_point, current_vel):
     action = pystk.Action()

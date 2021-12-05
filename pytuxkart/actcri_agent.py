@@ -19,7 +19,7 @@ import argparse
 
 
 
-RESCUE_TIMEOUT = 30
+RESCUE_TIMEOUT = 10
 TRACK_OFFSET = 15
 ON_COLAB = os.environ.get('ON_COLAB', False)
 if ON_COLAB:
@@ -180,22 +180,16 @@ class A2CAgent(DeepRL):
         speed_threshold = 0.5
         abs_aim = abs(aim_point[0])
         loc_change = (cur_loc - prev_loc) if abs(cur_loc - prev_loc) < 2.5 else 0
-        # if loc_change <= 0:
-        #     reward_speed = -100
-        # else:
-        #     reward_speed = loc_change * 10
         forward_distance = cur_loc - prev_loc
 
         # print('off: ', abs_aim)
         # print('loc: ', cur_loc - prev_loc, 'cur_loc: ', cur_loc, 'prev_loc', prev_loc)
         reward_off = - abs_aim * 30  # range (-25, 0)
-        reward_speed = forward_distance * 5 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 10  # range(-5, 0)
+        reward_speed = forward_distance * 2 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 10  # range(-5, 0)
         reward = reward_speed + reward_off
 
         if self.total_step - self.restart_time < 5:
-            reward = -30
-        if restarted:
-            reward -= 10000000
+            reward = -15
         return cur_loc, reward / 2, restarted, done
 
     def update_model(self) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -260,8 +254,19 @@ class A2CAgent(DeepRL):
             obs = np.array((aim_point[0], aim_point[1], vel, kart.distance_down_track))
 
             steer = self.select_action(obs)
-            action = rl_control(aim_point, vel, 'steer', steer)
+            accel = self.select_action(obs)
+            action = rl_control(aim_point, vel, 'steer', steer, 'acceleration', accel)
+
+            rescue = False
+            print("vel is ", vel, ", total step is ", self.total_step, ", last rescue is ", last_rescue)
+            if vel < 0.2 and self.total_step - last_rescue > RESCUE_TIMEOUT:
+                last_rescue = self.total_step
+                action.rescue = True
+                rescue = True
+
             prev_loc, reward, restarted, done = self.step(state, track, prev_loc, action, aim_point)
+            if rescue:
+                reward = -15
 
             next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
             next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel, kart.distance_down_track))
@@ -280,9 +285,7 @@ class A2CAgent(DeepRL):
 
             score += reward
 
-            if vel < 1.0 and self.total_step - last_rescue > RESCUE_TIMEOUT:
-                last_rescue = self.total_step
-                restarted = True
+
 
             # if episode ends
             if restarted:
@@ -306,7 +309,7 @@ class A2CAgent(DeepRL):
 
             if self.total_step % plotting_interval == 0:
                 # best_score = -9999999999999
-                self.save_model(self.actor, Actor)
+                self.save_model(self.actor, Actor, 'A2C.th')
                 if ON_COLAB:
                     self._plot(self.total_step, best_score, actor_losses, critic_losses)
                 elif not self.verbose:
@@ -329,7 +332,7 @@ class A2CAgent(DeepRL):
         state.update()
         track.update()
 
-        test_actor = self.load_model(Actor).eval()
+        test_actor = self.load_model(Actor, 'A2C.th').eval()
 
         if self.verbose:
             # show video
@@ -342,7 +345,8 @@ class A2CAgent(DeepRL):
             obs = np.array((aim_point[0], aim_point[1], vel, kart.distance_down_track))
 
             steer = self.select_action(obs, test_actor)
-            action = rl_control(aim_point, vel, 'steer', steer)
+            accel = self.select_action(obs, test_actor)
+            action = rl_control(aim_point, vel, 'steer', steer, 'acceleration', accel)
             prev_loc, reward, restarted, done = self.step(state, track, prev_loc, action, aim_point)
 
             next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
@@ -350,10 +354,11 @@ class A2CAgent(DeepRL):
 
             score += reward
 
-            if vel < 1.0 and cur_frame - last_rescue > RESCUE_TIMEOUT:
+            print("vel is ", vel, ", cur_frame is ", cur_frame, ", last rescue is ", last_rescue)
+            if vel < 0.2 and cur_frame - last_rescue > RESCUE_TIMEOUT:
                 # print('rescue', 'cur frame: ', cur_frame, ' last rescue: ', last_rescue)
                 last_rescue = cur_frame
-                restarted = True
+                action.rescue = True
 
             # if episode ends
             if restarted:

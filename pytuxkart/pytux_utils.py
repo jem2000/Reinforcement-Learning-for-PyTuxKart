@@ -71,7 +71,7 @@ class DeepRL:
 
         aim_point_world = self.env.point_on_track(cur_loc + TRACK_OFFSET, track)
         aim_point_image = self.env.to_image(aim_point_world, proj, view)
-        current_vel = (np.linalg.norm(kart.velocity) - 10) / 10
+        current_vel = (np.linalg.norm(kart.velocity))
 
         return aim_point_image, current_vel, aim_point_world, proj, view, kart
 
