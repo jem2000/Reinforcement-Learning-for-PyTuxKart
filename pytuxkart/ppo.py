@@ -17,11 +17,12 @@ import argparse
 
 from pytux_utils import DeepRL
 
-RESCUE_TIMEOUT = 100
+RESCUE_TIMEOUT = 30
 TRACK_OFFSET = 15
 
 starting_frames = 0
 reset_frames = 0
+post_rescue_frames = 100
 
 ON_COLAB = os.environ.get('ON_COLAB', False)
 if ON_COLAB:
@@ -287,7 +288,7 @@ class PPOAgent(DeepRL):
                 self.restart_time = self.total_step
                 if self.verbose:
                     print('off_track restarted ****************')
-                restarted = True
+                action.rescue = True
                 starting_frames = 0
 
         elif end_track:
@@ -440,18 +441,22 @@ class PPOAgent(DeepRL):
                 steer = self.select_action(obs)
                 # accel = self.select_action(obs)
                 accel = None
-                if starting_frames < RESCUE_TIMEOUT:
+                print("starting frames is ", starting_frames)
+                if starting_frames < TRACK_OFFSET:
+                    print("Using controller")
                     action = control(aim_point, vel)
                 else:
+                    print("Using RL")
                     action = rl_control(aim_point, vel, 'steer', steer, 'acceleration', accel)
 
                 rescue = False
-                # print("vel is ", vel)
+                print("vel is ", vel)
                 if vel < 0.5:
                     reset_frames += 1
                 else:
                     reset_frames = 0
-                if reset_frames > RESCUE_TIMEOUT:
+                    print("total_step is", self.total_step)
+                if reset_frames > RESCUE_TIMEOUT and self.total_step - last_rescue > RESCUE_TIMEOUT:
                     last_rescue = self.total_step
                     action.rescue = True
                     rescue = True
@@ -542,7 +547,7 @@ class PPOAgent(DeepRL):
             steer = self.select_action(obs, test_actor)
             accel = None
             # accel = self.select_action(obs, test_actor)
-            if starting_frames < RESCUE_TIMEOUT:
+            if starting_frames < TRACK_OFFSET:
                 action = control(aim_point, vel)
             else:
                 action = rl_control(aim_point, vel, 'steer', steer, 'acceleration', accel)
