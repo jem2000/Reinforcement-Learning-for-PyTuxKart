@@ -15,6 +15,7 @@ import torch.optim as optim
 from IPython.display import clear_output
 from torch.distributions import Normal
 
+RESCUE_SPEED = 3
 RESCUE_TIMEOUT = 30
 TRACK_OFFSET = 15
 
@@ -235,6 +236,7 @@ class PPOAgent(DeepRL):
         self.verbose = verbose
 
         # off track
+        self.last_rescue = 0
         self.restart_time = 0
 
         self.off_track_tolerance = 0
@@ -296,21 +298,21 @@ class PPOAgent(DeepRL):
             done = True
             starting_frames = 0
 
+        speed_weight = 0.3
+        speed_threshold = 0.5
+
         cur_loc = kart.distance_down_track
-        # print('distance down track: ', cur_loc)
-        speed_threshold = 0.4
         abs_aim = abs(aim_point[0])
         loc_change = (cur_loc - prev_loc) if abs(cur_loc - prev_loc) < 2.5 else 0
-        # print('off: ', abs_aim)
-        # print('loc: ', cur_loc - prev_loc, 'cur_loc: ', cur_loc, 'prev_loc', prev_loc)
-        reward_off = - abs_aim * 20  # range (-20, 0)
-        reward_speed = 0 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 6.25  # range(-10, 0)
-        reward = reward_speed + reward_off
 
-        # if self.total_step - self.restart_time < 5:
-        #     reward = -30
+        reward_off = - abs_aim * 15  # range (-20, 0)
+        reward_speed = 0 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 10 # range(-10, 0)
+        reward = reward_speed*speed_weight + reward_off*(1-speed_weight)
 
-        reward = np.reshape(reward/2, (1, -1)).astype(np.float64)
+        if self.total_step - self.last_rescue < 5:
+            reward = -15
+
+        reward = np.reshape(reward, (1, -1)).astype(np.float64)
         restarted = np.reshape(restarted, (1, -1))
 
         if not self.is_test:
@@ -414,6 +416,7 @@ class PPOAgent(DeepRL):
         global starting_frames
         global reset_frames
         self.is_test = False
+        self.last_rescue = 0
 
         actor_losses, critic_losses = [], []
         actor_epoch_losses, critic_epoch_losses = [], []
@@ -421,7 +424,7 @@ class PPOAgent(DeepRL):
         score = 0
         prev_loc = 0
         best_score = -9999999999999
-        last_rescue = 0
+        
 
         state, track = self.init_track()
         state.update()
@@ -449,13 +452,13 @@ class PPOAgent(DeepRL):
 
                 rescue = False
                 # print("vel is ", vel)
-                if vel < 0.5:
+                if vel < RESCUE_SPEED:
                     reset_frames += 1
                 else:
                     reset_frames = 0
                     # print("total_step is", self.total_step)
-                if reset_frames > RESCUE_TIMEOUT and self.total_step - last_rescue > RESCUE_TIMEOUT:
-                    last_rescue = self.total_step
+                if reset_frames > RESCUE_TIMEOUT and self.total_step - self.last_rescue > RESCUE_TIMEOUT:
+                    self.last_rescue = self.total_step
                     action.rescue = True
                     rescue = True
                     starting_frames = 0
@@ -519,12 +522,12 @@ class PPOAgent(DeepRL):
         global starting_frames
         global reset_frames
         self.is_test = True
+        self.last_rescue = 0
         print('Testing')
 
         score = 0
         prev_loc = 0
         best_score = -9999999999999
-        last_rescue = 0
         count = 0
 
         state, track = self.init_track()
@@ -548,15 +551,16 @@ class PPOAgent(DeepRL):
             if starting_frames < TRACK_OFFSET:
                 action = control(aim_point, vel)
             else:
-                action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
+                action = rl_control(aim_point, vel, ['steer'], [steer])
+                # action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
 
-            print("vel is ", vel, ", cur frame is ", cur_frame, ", last rescue is ", last_rescue)
-            if vel < 0.5:
+            print("vel is ", vel, ", cur frame is ", cur_frame, ", last rescue is ", self.last_rescue)
+            if vel < RESCUE_SPEED:
                 reset_frames += 1
             else:
                 reset_frames = 0
-            if reset_frames > RESCUE_TIMEOUT and cur_frame - last_rescue > RESCUE_TIMEOUT:
-                last_rescue = cur_frame
+            if reset_frames > RESCUE_TIMEOUT and cur_frame - self.last_rescue > RESCUE_TIMEOUT:
+                self.last_rescue = cur_frame
                 action.rescue = True
                 rescue = True
                 starting_frames = 0

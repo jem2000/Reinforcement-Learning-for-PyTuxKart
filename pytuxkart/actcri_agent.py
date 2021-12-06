@@ -17,8 +17,10 @@ from torch import load
 from os import path
 import argparse
 
+RESCUE_SPEED = 0.5
 RESCUE_TIMEOUT = 10
 TRACK_OFFSET = 15
+
 ON_COLAB = os.environ.get('ON_COLAB', False)
 if ON_COLAB:
     from .controller import rl_control
@@ -257,7 +259,7 @@ class A2CAgent(DeepRL):
 
             rescue = False
             # print("vel is ", vel, ", total step is ", self.total_step, ", last rescue is ", last_rescue)
-            if vel < 0.2 and self.total_step - last_rescue > RESCUE_TIMEOUT:
+            if vel < RESCUE_SPEED and self.total_step - last_rescue > RESCUE_TIMEOUT:
                 last_rescue = self.total_step
                 action.rescue = True
                 rescue = True
@@ -353,7 +355,7 @@ class A2CAgent(DeepRL):
             score += reward
 
             print("vel is ", vel, ", cur_frame is ", cur_frame, ", last rescue is ", last_rescue)
-            if vel < 0.2 and cur_frame - last_rescue > RESCUE_TIMEOUT:
+            if vel < RESCUE_SPEED and cur_frame - last_rescue > RESCUE_TIMEOUT:
                 # print('rescue', 'cur frame: ', cur_frame, ' last rescue: ', last_rescue)
                 last_rescue = cur_frame
                 action.rescue = True
