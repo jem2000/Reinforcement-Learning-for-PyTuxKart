@@ -44,9 +44,9 @@ class Actor(nn.Module):
         """Initialize."""
         super(Actor, self).__init__()
 
-        self.hidden1 = nn.Linear(in_dim, 128)
-        self.mu_layer = nn.Linear(128, out_dim)
-        self.log_std_layer = nn.Linear(128, out_dim)
+        self.hidden1 = nn.Linear(in_dim, 32)
+        self.mu_layer = nn.Linear(32, out_dim)
+        self.log_std_layer = nn.Linear(32, out_dim)
 
         initialize_uniformly(self.mu_layer)
         initialize_uniformly(self.log_std_layer)
@@ -70,8 +70,8 @@ class Critic(nn.Module):
         """Initialize."""
         super(Critic, self).__init__()
 
-        self.hidden1 = nn.Linear(in_dim, 128)
-        self.out = nn.Linear(128, 1)
+        self.hidden1 = nn.Linear(in_dim, 64)
+        self.out = nn.Linear(64, 1)
 
         initialize_uniformly(self.out)
 
@@ -143,7 +143,7 @@ class A2CAgent(DeepRL):
             log_prob = dist.log_prob(selected_action).sum(dim=-1)
             self.transition = [obs, log_prob]
 
-        return selected_action.clamp(-1.0, 1.0).cpu().detach().numpy()
+        return selected_action.cpu().detach().numpy()
 
     def step(self, state, track, prev_loc, action, aim_point):
         restarted = False
@@ -252,8 +252,8 @@ class A2CAgent(DeepRL):
         for self.total_step in range(1, num_frames + 1):
             aim_point, vel, _, _, _, kart = self.update_kart(track, state)
             obs = np.array((aim_point[0], aim_point[1], vel, kart.distance_down_track))
-
             steer = self.select_action(obs)
+
             accel = self.select_action(obs)
             action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
 
