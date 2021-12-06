@@ -13,6 +13,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch import load
+from os import path
 from IPython.display import clear_output
 from torch.distributions import Normal
 
@@ -214,6 +216,10 @@ class PPOAgent(DeepRL):
 
         # networks
         self.actor = Actor(self.obs_dim, self.action_dim).to(self.device)
+        if continue_training:
+            print('continue training')
+            self.actor.load_state_dict(
+                load(path.join(path.dirname(path.abspath(__file__)), 'ppo.th'), map_location='cpu'))
         self.critic = Critic(self.obs_dim).to(self.device)
 
         # optimizer
@@ -261,7 +267,7 @@ class PPOAgent(DeepRL):
             self.values.append(value)
             self.log_probs.append(dist.log_prob(selected_action))
 
-        return selected_action.clamp(-1.0, 1.0).cpu().detach().numpy()
+        return selected_action.cpu().detach().numpy()
 
     def step(self, state, track, prev_loc, action, aim_point):
         """Take an action and return the response of the env."""
@@ -292,8 +298,7 @@ class PPOAgent(DeepRL):
                 action.rescue = True
 
         elif end_track:
-            if self.verbose:
-                print('end_track restarted ****************')
+            print('end_track restarted ****************')
             restarted = True
             done = True
             starting_frames = 0
@@ -364,7 +369,6 @@ class PPOAgent(DeepRL):
                 advantages=advantages,
         ):
             # calculate ratios
-            print(state)
             _, dist = self.actor(state)
             log_prob = dist.log_prob(action)
             ratio = (log_prob - old_log_prob).exp()
@@ -480,10 +484,10 @@ class PPOAgent(DeepRL):
 
                 # if episode ends
                 if done:
+                    print('done')
                     best_score = score if score > best_score else best_score
                     scores.append(score)
                     score = 0
-
                     self._plot(self.total_step, scores, actor_losses, critic_losses)
 
                 # print(self.total_step)
@@ -505,10 +509,11 @@ class PPOAgent(DeepRL):
             critic_losses.append(np.mean(critic_epoch_losses))
             actor_epoch_losses, critic_epoch_losses = [], []
             self.save_model(self.actor, Actor, 'ppo.th')
+            s_in = scores if scores != [] else [best_score]
             if ON_COLAB:
-                self._plot(self.total_step, best_score, actor_losses, critic_losses)
+              self._plot(self.total_step, s_in, actor_losses, critic_losses)
             elif not self.verbose:
-                self._plot_cmd(self.total_step, best_score, actor_losses, critic_losses)
+              self._plot_cmd(self.total_step, s_in, actor_losses, critic_losses)
 
         # termination
         self.env.close()
@@ -594,7 +599,7 @@ class PPOAgent(DeepRL):
     def _plot(
             self,
             frame_idx: int,
-            score: List[float],
+            scores: List[float],
             actor_losses: List[float],
             critic_losses: List[float],
     ):
@@ -606,7 +611,7 @@ class PPOAgent(DeepRL):
             plt.plot(values)
 
         subplot_params = [
-            (131, f"frame {frame_idx}. score: {score}", score),
+            (131, f"frame {frame_idx}. score: {scores[-1]}", scores),
             (132, "actor_loss", actor_losses),
             (133, "critic_loss", critic_losses),
         ]
