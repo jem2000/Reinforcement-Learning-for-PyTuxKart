@@ -17,8 +17,6 @@ from torch import load
 from os import path
 import argparse
 
-
-
 RESCUE_TIMEOUT = 10
 TRACK_OFFSET = 15
 ON_COLAB = os.environ.get('ON_COLAB', False)
@@ -255,10 +253,10 @@ class A2CAgent(DeepRL):
 
             steer = self.select_action(obs)
             accel = self.select_action(obs)
-            action = rl_control(aim_point, vel, 'steer', steer, 'acceleration', accel)
+            action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
 
             rescue = False
-            print("vel is ", vel, ", total step is ", self.total_step, ", last rescue is ", last_rescue)
+            # print("vel is ", vel, ", total step is ", self.total_step, ", last rescue is ", last_rescue)
             if vel < 0.2 and self.total_step - last_rescue > RESCUE_TIMEOUT:
                 last_rescue = self.total_step
                 action.rescue = True
@@ -346,7 +344,7 @@ class A2CAgent(DeepRL):
 
             steer = self.select_action(obs, test_actor)
             accel = self.select_action(obs, test_actor)
-            action = rl_control(aim_point, vel, 'steer', steer, 'acceleration', accel)
+            action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
             prev_loc, reward, restarted, done = self.step(state, track, prev_loc, action, aim_point)
 
             next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)

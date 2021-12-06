@@ -7,14 +7,20 @@ import torch
 from torch import save
 from torch import load
 from os import path
+import os
 
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms.functional as TF
-import dense_transforms
 
 RESCUE_TIMEOUT = 30
 TRACK_OFFSET = 15
 DATASET_PATH = 'drive_data'
+
+ON_COLAB = os.environ.get('ON_COLAB', False)
+if ON_COLAB:
+    from . import dense_transforms
+else:
+    import dense_transforms
 
 
 class DeepRL:
@@ -69,7 +75,7 @@ class DeepRL:
         proj = np.array(state.players[0].camera.projection).T
         view = np.array(state.players[0].camera.view).T
 
-        aim_point_world = self.env.point_on_track(cur_loc + TRACK_OFFSET, track)
+        aim_point_world = self.env.point_on_track(cur_loc+TRACK_OFFSET, track)
         aim_point_image = self.env.to_image(aim_point_world, proj, view)
         current_vel = (np.linalg.norm(kart.velocity))
 

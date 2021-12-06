@@ -24,7 +24,7 @@ def nitro_control(aim_point, current_vel):
         return False
 
 
-def rl_control(aim_point, current_vel, override, override_val, override2, override_val2):
+def rl_control(aim_point, current_vel, override_list, override_val_list):
     action = pystk.Action()
 
     action.steer, action.drift = steering_control(aim_point)
@@ -32,8 +32,8 @@ def rl_control(aim_point, current_vel, override, override_val, override2, overri
     action.nitro = nitro_control(aim_point, current_vel)
     action.brake = brake or action.drift
 
-    setattr(action, override, override_val)
-    # setattr(action, override2, (override_val2 + 1) * 0.5)
+    for i in range(len(override_list)):
+        setattr(action, override_list[i], override_val_list[i])
 
     return action
 

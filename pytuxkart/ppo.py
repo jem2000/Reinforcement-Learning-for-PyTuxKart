@@ -3,7 +3,9 @@ import io
 from collections import deque
 from typing import List, Tuple, Deque
 
+import os
 import gym
+import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -12,10 +14,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 from IPython.display import clear_output
 from torch.distributions import Normal
-import os
-import argparse
-
-from pytux_utils import DeepRL
 
 RESCUE_TIMEOUT = 30
 TRACK_OFFSET = 15
@@ -28,10 +26,12 @@ if ON_COLAB:
     from .controller import rl_control
     from .controller import control
     from . import utils
+    from .pytux_utils import DeepRL
 else:
     from controller import rl_control
     from controller import control
     import utils
+    from pytux_utils import DeepRL
 
     from IPython.display import HTML, display
 
@@ -404,8 +404,8 @@ class PPOAgent(DeepRL):
         actor_loss = sum(actor_losses) / len(actor_losses)
         critic_loss = sum(critic_losses) / len(critic_losses)
 
-        print('actor_loss', actor_loss)
-        print('critic_loss', critic_loss)
+        # print('actor_loss', actor_loss)
+        # print('critic_loss', critic_loss)
 
         return actor_loss, critic_loss
 
@@ -438,14 +438,14 @@ class PPOAgent(DeepRL):
                 obs = np.array((aim_point[0], aim_point[1], vel, kart.distance_down_track))
                 steer = self.select_action(obs)
                 # accel = self.select_action(obs)
-                accel = None
                 # print("starting frames is ", starting_frames)
                 if starting_frames < TRACK_OFFSET:
                     # print("Using controller")
                     action = control(aim_point, vel)
                 else:
                     # print("Using RL")
-                    action = rl_control(aim_point, vel, 'steer', steer, 'acceleration', accel)
+                    # action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
+                    action = rl_control(aim_point, vel, ['steer'], [steer])
 
                 rescue = False
                 # print("vel is ", vel)
@@ -548,7 +548,7 @@ class PPOAgent(DeepRL):
             if starting_frames < TRACK_OFFSET:
                 action = control(aim_point, vel)
             else:
-                action = rl_control(aim_point, vel, 'steer', steer, 'acceleration', accel)
+                action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
 
             print("vel is ", vel, ", cur frame is ", cur_frame, ", last rescue is ", last_rescue)
             if vel < 0.5:
@@ -589,13 +589,12 @@ class PPOAgent(DeepRL):
                 print('time frame: ', cur_frame)
                 print('score: ', score, 'reward: ', reward)
 
-        # print("score: ", score)
         self.env.close()
 
     def _plot(
             self,
             frame_idx: int,
-            scores: List[float],
+            score: List[float],
             actor_losses: List[float],
             critic_losses: List[float],
     ):
@@ -607,7 +606,7 @@ class PPOAgent(DeepRL):
             plt.plot(values)
 
         subplot_params = [
-            (131, f"frame {frame_idx}. score: {np.mean(scores[-10:])}", scores),
+            (131, f"frame {frame_idx}. score: {score}", score),
             (132, "actor_loss", actor_losses),
             (133, "critic_loss", critic_losses),
         ]
@@ -654,7 +653,20 @@ def main(pytux, track, verbose=False, test=False, continue_training=False):
     gamma = 0.9
     entropy_weight = 1e-2
 
-    agent = PPOAgent(pytux, track, gamma, entropy_weight, verbose=verbose, continue_training=continue_training)
+    agent = PPOAgent(
+        pytux=pytux,
+        track=track,
+        gamma=gamma,
+        entropy_weight=entropy_weight,
+        verbose=verbose,
+        continue_training=continue_training,
+        tau=0.8,
+        batch_size=64,
+        epsilon=0.2,
+        epoch=64,
+        rollout_len=2048,
+        )
+
     if test:
         agent.test(num_frames)
     else:

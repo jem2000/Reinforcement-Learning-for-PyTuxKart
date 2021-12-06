@@ -3,11 +3,17 @@ import pystk
 
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms.functional as TF
-import dense_transforms
 
 RESCUE_TIMEOUT = 30
 TRACK_OFFSET = 15
 DATASET_PATH = 'drive_data'
+
+import os
+ON_COLAB = os.environ.get('ON_COLAB', False)
+if ON_COLAB:
+    from . import dense_transforms
+else:
+    import dense_transforms
 
 
 class SuperTuxDataset(Dataset):
@@ -118,7 +124,7 @@ class PyTux:
             proj = np.array(state.players[0].camera.projection).T
             view = np.array(state.players[0].camera.view).T
 
-            aim_point_world = self._point_on_track(kart.distance_down_track+TRACK_OFFSET, track)
+            aim_point_world = self.point_on_track(kart.distance_down_track+TRACK_OFFSET, track)
             aim_point_image = self.to_image(aim_point_world, proj, view)
             if data_callback is not None:
                 data_callback(t, np.array(self.k.render_data[0].image), aim_point_image)
@@ -141,7 +147,7 @@ class PyTux:
                 ax.add_artist(plt.Circle(WH2*(1+self.to_image(kart.location, proj, view)), 2, ec='b', fill=False, lw=1.5))
                 ax.add_artist(plt.Circle(WH2*(1+self.to_image(aim_point_world, proj, view)), 2, ec='r', fill=False, lw=1.5))
                 if planner:
-                    ap = self._point_on_track(kart.distance_down_track + TRACK_OFFSET, track)
+                    ap = self.point_on_track(kart.distance_down_track + TRACK_OFFSET, track)
                     ax.add_artist(plt.Circle(WH2*(1+aim_point_image), 2, ec='g', fill=False, lw=1.5))
                 plt.pause(1e-3)
 
