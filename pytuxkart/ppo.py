@@ -7,6 +7,7 @@ import os
 import gym
 import argparse
 import matplotlib.pyplot as plt
+import random
 import numpy as np
 import torch
 import torch.nn as nn
@@ -252,7 +253,7 @@ class PPOAgent(DeepRL):
             action, dist = self.actor(obs)
 
         selected_action = dist.mean if self.is_test else action
-
+        
         if not self.is_test:
             value = self.critic(obs)
             self.states.append(obs)
@@ -260,7 +261,6 @@ class PPOAgent(DeepRL):
             self.values.append(value)
             self.log_probs.append(dist.log_prob(selected_action))
 
-        # return selected_action.cpu().detach().numpy()
         return selected_action.clamp(-1.0, 1.0).cpu().detach().numpy()
 
     def step(self, state, track, prev_loc, action, aim_point):
@@ -298,7 +298,7 @@ class PPOAgent(DeepRL):
             done = True
             starting_frames = 0
 
-        speed_weight = 0.3
+        speed_weight = 0.5
         speed_threshold = 0.5
 
         cur_loc = kart.distance_down_track
@@ -308,9 +308,6 @@ class PPOAgent(DeepRL):
         reward_off = - abs_aim * 15  # range (-20, 0)
         reward_speed = 0 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 10 # range(-10, 0)
         reward = reward_speed*speed_weight + reward_off*(1-speed_weight)
-
-        if self.total_step - self.last_rescue < 5:
-            reward = -15
 
         reward = np.reshape(reward, (1, -1)).astype(np.float64)
         restarted = np.reshape(restarted, (1, -1))
@@ -367,6 +364,7 @@ class PPOAgent(DeepRL):
                 advantages=advantages,
         ):
             # calculate ratios
+            print(state)
             _, dist = self.actor(state)
             log_prob = dist.log_prob(action)
             ratio = (log_prob - old_log_prob).exp()
@@ -472,8 +470,6 @@ class PPOAgent(DeepRL):
                 next_obs = np.reshape(next_obs, (1, -1)).astype(np.float64)
                 # state = next_state
                 score += reward
-
-
 
                 if restarted:
                     state, track = self.init_track()
