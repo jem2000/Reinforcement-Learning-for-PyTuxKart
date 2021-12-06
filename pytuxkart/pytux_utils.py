@@ -7,6 +7,7 @@ import torch
 from torch import save
 from torch import load
 from os import path
+import random
 import os
 
 from torch.utils.data import Dataset, DataLoader
@@ -49,7 +50,8 @@ class DeepRL:
             plt.Circle(WH2 * (1 + self.env.to_image(aim_point_world, proj, view)), 2, ec='r', fill=False, lw=1.5))
         plt.pause(1e-3)
 
-    def init_track(self, track='lighthouse'):
+    def init_track(self):
+        track = self.track
         if self.env.k is not None and self.env.k.config.track == track:
             # print('init restart +++++++++++++++++++++')
             self.env.k.restart()
@@ -67,6 +69,10 @@ class DeepRL:
             self.env.k.step()
 
         return pystk.WorldState(), pystk.Track()
+
+    def flipCoin(self):
+        r = random.random()
+        return r < 0.75
 
     def update_kart(self, track, state):
         kart = state.players[0].kart

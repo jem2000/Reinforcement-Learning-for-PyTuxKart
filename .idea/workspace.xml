@@ -8,10 +8,8 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pytuxkart/A2C.th" beforeDir="false" afterPath="$PROJECT_DIR$/pytuxkart/A2C.th" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pytuxkart/actcri_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/pytuxkart/actcri_agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pytuxkart/controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/pytuxkart/controller.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pytuxkart/ppo.py" beforeDir="false" afterPath="$PROJECT_DIR$/pytuxkart/ppo.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pytuxkart/ppo.th" beforeDir="false" afterPath="$PROJECT_DIR$/pytuxkart/ppo.th" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pytuxkart/pytux_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/pytuxkart/pytux_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,11 +27,11 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="file://$PROJECT_DIR$/pytuxkart/controller.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/pytuxkart/actcri_agent.py" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/pytuxkart/train.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/pytuxkart/planner.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/pytuxkart/utils.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pytuxkart/controller.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pytuxkart/train.py" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="ProjectId" id="21J29NcSX8mCeavD2mpx9cZQCIe" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
@@ -104,14 +102,14 @@
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
-      <option name="SDK_HOME" value="C:\Users\justi\AppData\Local\Programs\Python\Python39\PyCharm_virtualenv\Scripts\python.exe" />
+      <option name="SDK_HOME" value="$USER_HOME$/opt/anaconda3/bin/python" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pytuxkart" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pytuxkart/ppo.py" />
-      <option name="PARAMETERS" value="zengarden" />
+      <option name="PARAMETERS" value="lighthouse -t -v" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -156,67 +154,7 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>380</line>
-          <option name="timeStamp" value="9" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>360</line>
-          <option name="timeStamp" value="11" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>553</line>
-          <option name="timeStamp" value="42" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>567</line>
-          <option name="timeStamp" value="45" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>583</line>
-          <option name="timeStamp" value="48" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>512</line>
-          <option name="timeStamp" value="64" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>337</line>
-          <option name="timeStamp" value="65" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>340</line>
-          <option name="timeStamp" value="66" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>152</line>
-          <option name="timeStamp" value="67" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>349</line>
-          <option name="timeStamp" value="68" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>163</line>
-          <option name="timeStamp" value="69" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>350</line>
-          <option name="timeStamp" value="72" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
+          <url>file://$PROJECT_DIR$/pytuxkart/actcri_agent.py</url>
           <line>351</line>
           <option name="timeStamp" value="73" />
         </line-breakpoint>
@@ -227,101 +165,21 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>353</line>
-          <option name="timeStamp" value="75" />
+          <line>267</line>
+          <option name="timeStamp" value="56" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>354</line>
-          <option name="timeStamp" value="76" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>389</line>
-          <option name="timeStamp" value="77" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>396</line>
-          <option name="timeStamp" value="78" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>399</line>
-          <option name="timeStamp" value="79" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>400</line>
-          <option name="timeStamp" value="80" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>401</line>
-          <option name="timeStamp" value="81" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>404</line>
-          <option name="timeStamp" value="82" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>406</line>
-          <option name="timeStamp" value="83" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>409</line>
-          <option name="timeStamp" value="84" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>414</line>
-          <option name="timeStamp" value="85" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>415</line>
-          <option name="timeStamp" value="86" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>383</line>
-          <option name="timeStamp" value="87" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>384</line>
-          <option name="timeStamp" value="88" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>387</line>
-          <option name="timeStamp" value="89" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>390</line>
-          <option name="timeStamp" value="90" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>391</line>
-          <option name="timeStamp" value="91" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>394</line>
-          <option name="timeStamp" value="92" />
+          <line>575</line>
+          <option name="timeStamp" value="57" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Reinforcement_Learning_for_PyTuxKart$planner.coverage" NAME="planner Coverage Results" MODIFIED="1638255071128" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pytuxkart" />
-    <SUITE FILE_PATH="coverage/Reinforcement_Learning_for_PyTuxKart$actcri_agent_py.coverage" NAME="actcri_agent.py Coverage Results" MODIFIED="1638772454697" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pytuxkart" />
-    <SUITE FILE_PATH="coverage/Reinforcement_Learning_for_PyTuxKart$ppo_py.coverage" NAME="ppo.py Coverage Results" MODIFIED="1638766177959" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pytuxkart" />
     <SUITE FILE_PATH="coverage/Reinforcement_Learning_for_PyTuxKart$actcri_agent_py_verbose.coverage" NAME="actcri_agent.py verbose Coverage Results" MODIFIED="1638657351327" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pytuxkart" />
+    <SUITE FILE_PATH="coverage/Reinforcement_Learning_for_PyTuxKart$actcri_agent_py.coverage" NAME="actcri_agent.py Coverage Results" MODIFIED="1638682990404" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pytuxkart" />
+    <SUITE FILE_PATH="coverage/Reinforcement_Learning_for_PyTuxKart$ppo_py.coverage" NAME="ppo.py Coverage Results" MODIFIED="1638774792216" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pytuxkart" />
   </component>
 </project>
