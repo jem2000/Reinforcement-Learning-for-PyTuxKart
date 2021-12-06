@@ -58,7 +58,7 @@ def ipython_show_video(path: str) -> None:
 
     # list_of_files = glob.glob("videos/*.mp4")
     # latest_file = max(list_of_files, key=os.path.getctime)
-    # print(latest_file)
+#     # print(latest_file)
     # ipython_show_video(latest_file)
 
     # def display_frames_as_gif(frames):
@@ -293,8 +293,8 @@ class PPOAgent(DeepRL):
         if off_track:
             if self.total_step - self.restart_time > 30:
                 self.restart_time = self.total_step
-                if self.verbose:
-                    print('off_track restarted ****************')
+                # if self.verbose:
+                #     # print('off_track restarted ****************')
                 action.rescue = True
 
         elif end_track:
@@ -302,6 +302,7 @@ class PPOAgent(DeepRL):
             restarted = True
             done = True
             starting_frames = 0
+            print("completed track")
 
         speed_weight = 0.5
         speed_threshold = 0.5
@@ -347,16 +348,16 @@ class PPOAgent(DeepRL):
         log_probs = torch.cat(self.log_probs).detach()
         advantages = returns - values
 
-        # print('values', values.shape)
-        # print('returns', returns.shape)
-        # print('advantages', advantages.shape)
+#         # print('values', values.shape)
+#         # print('returns', returns.shape)
+#         # print('advantages', advantages.shape)
 
         actor_losses, critic_losses = [], []
 
-        # print("states===================")
-        # print(states)
-        # print("returns===================")
-        # print(returns)
+#         # print("states===================")
+#         # print(states)
+#         # print("returns===================")
+#         # print(returns)
 
         for state, action, old_value, old_log_prob, return_, adv in ppo_iter(
                 epoch=self.epoch,
@@ -369,6 +370,7 @@ class PPOAgent(DeepRL):
                 advantages=advantages,
         ):
             # calculate ratios
+
             _, dist = self.actor(state)
             log_prob = dist.log_prob(action)
             ratio = (log_prob - old_log_prob).exp()
@@ -408,8 +410,8 @@ class PPOAgent(DeepRL):
         actor_loss = sum(actor_losses) / len(actor_losses)
         critic_loss = sum(critic_losses) / len(critic_losses)
 
-        # print('actor_loss', actor_loss)
-        # print('critic_loss', critic_loss)
+#         # print('actor_loss', actor_loss)
+#         # print('critic_loss', critic_loss)
 
         return actor_loss, critic_loss
 
@@ -444,13 +446,17 @@ class PPOAgent(DeepRL):
                 steer = self.select_action(obs)
                 # accel = self.select_action(obs)
                 # print("starting frames is ", starting_frames)
-                if starting_frames < TRACK_OFFSET:
-                    # print("Using controller")
-                    action = control(aim_point, vel)
-                else:
+                if aim_point[0] > 0 and steer < 0:
+                    steer = -steer
+                elif aim_point[0] < 0 and steer > 0:
+                    steer = -steer
+                # if starting_frames < TRACK_OFFSET:
+                #     # print("Using controller")
+                #     action = control(aim_point, vel)
+                # else:
                     # print("Using RL")
                     # action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
-                    action = rl_control(aim_point, vel, ['steer'], [steer])
+                action = rl_control(aim_point, vel, ['steer'], [steer])
 
                 rescue = False
                 # print("vel is ", vel)
@@ -458,7 +464,7 @@ class PPOAgent(DeepRL):
                     reset_frames += 1
                 else:
                     reset_frames = 0
-                    # print("total_step is", self.total_step)
+#                     # print("total_step is", self.total_step)
                 if reset_frames > RESCUE_TIMEOUT and self.total_step - self.last_rescue > RESCUE_TIMEOUT:
                     self.last_rescue = self.total_step
                     action.rescue = True
@@ -488,7 +494,7 @@ class PPOAgent(DeepRL):
                     best_score = score if score > best_score else best_score
                     scores.append(score)
                     score = 0
-                    self._plot(self.total_step, scores, actor_losses, critic_losses)
+                    # self._plot(self.total_step, scores, actor_losses, critic_losses)
 
                 # print(self.total_step)
 
@@ -496,10 +502,10 @@ class PPOAgent(DeepRL):
                     title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(self.total_step, score[0][0],
                                                                                        best_score)
                     DeepRL.verbose(self, title, kart, ax, proj, view, aim_point_world)
-                    print('observation: ', obs)
-                    print('steering: ', steer)
-                    print('time frame: ', self.total_step)
-                    print('score: ', score, 'reward: ', reward)
+                    # print('observation: ', obs)
+                    # print('steering: ', steer)
+                    # print('time frame: ', self.total_step)
+                    # print('score: ', score, 'reward: ', reward)
 
             actor_loss, critic_loss = self.update_model(next_obs)
             actor_epoch_losses.append(actor_loss)
@@ -524,7 +530,7 @@ class PPOAgent(DeepRL):
         global reset_frames
         self.is_test = True
         self.last_rescue = 0
-        print('Testing')
+        # print('Testing')
 
         score = 0
         prev_loc = 0
@@ -549,13 +555,20 @@ class PPOAgent(DeepRL):
             steer = self.select_action(obs, test_actor)
             accel = None
             # accel = self.select_action(obs, test_actor)
-            if starting_frames < TRACK_OFFSET:
-                action = control(aim_point, vel)
-            else:
-                action = rl_control(aim_point, vel, ['steer'], [steer])
+            # if starting_frames < TRACK_OFFSET:
+            #     action = control(aim_point, vel)
+            # else:
+            if aim_point[0] > 0 and steer < 0:
+                steer = -steer
+                print("corrected")
+            elif aim_point[0] < 0 and steer > 0:
+                steer = -steer
+                print("corrected")
+            print("steer:", steer)
+            action = rl_control(aim_point, vel, ['steer'], [steer])
                 # action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
 
-            print("vel is ", vel, ", cur frame is ", cur_frame, ", last rescue is ", self.last_rescue)
+            # print("vel is ", vel, ", cur frame is ", cur_frame, ", last rescue is ", self.last_rescue)
             if vel < RESCUE_SPEED:
                 reset_frames += 1
             else:
@@ -589,10 +602,10 @@ class PPOAgent(DeepRL):
                 title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(cur_frame, score[0][0],
                                                                                     count + 1)
                 DeepRL.verbose(self, title, kart, ax, proj, view, aim_point_world)
-                print('observation: ', obs)
-                print('steering: ', steer)
-                print('time frame: ', cur_frame)
-                print('score: ', score, 'reward: ', reward)
+                # print('observation: ', obs)
+                # print('steering: ', steer)
+                # print('time frame: ', cur_frame)
+                # print('score: ', score, 'reward: ', reward)
 
         self.env.close()
 
@@ -691,7 +704,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--continue_training', action='store_true')
     args = parser.parse_args()
 
-    print(args)
+    # print(args)
 
     pytux = utils.PyTux()
     agent = PPOAgent(

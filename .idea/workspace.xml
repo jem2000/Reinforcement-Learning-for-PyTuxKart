@@ -7,10 +7,8 @@
     <list default="true" id="bfbd4166-cbea-4ae6-89ef-e9a12bd3655e" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pytuxkart/actcri_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/pytuxkart/actcri_agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pytuxkart/controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/pytuxkart/controller.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pytuxkart/ppo.py" beforeDir="false" afterPath="$PROJECT_DIR$/pytuxkart/ppo.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pytuxkart/ppo.th" beforeDir="false" afterPath="$PROJECT_DIR$/pytuxkart/ppo.th" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pytuxkart/pytux_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/pytuxkart/pytux_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -28,11 +26,11 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="file://$PROJECT_DIR$/pytuxkart/controller.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/pytuxkart/actcri_agent.py" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/pytuxkart/train.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/pytuxkart/planner.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/pytuxkart/utils.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pytuxkart/controller.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pytuxkart/train.py" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="ProjectId" id="21J29NcSX8mCeavD2mpx9cZQCIe" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
@@ -103,14 +101,14 @@
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
-      <option name="SDK_HOME" value="C:\Users\justi\AppData\Local\Programs\Python\Python39\PyCharm_virtualenv\Scripts\python.exe" />
+      <option name="SDK_HOME" value="$USER_HOME$/opt/anaconda3/bin/python" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pytuxkart" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pytuxkart/ppo.py" />
-      <option name="PARAMETERS" value="zengarden" />
+      <option name="PARAMETERS" value="lighthouse -t -v" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -155,16 +153,6 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>371</line>
-          <option name="timeStamp" value="9" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>351</line>
-          <option name="timeStamp" value="11" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pytuxkart/actcri_agent.py</url>
           <line>351</line>
           <option name="timeStamp" value="17" />
@@ -176,41 +164,21 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>544</line>
-          <option name="timeStamp" value="42" />
+          <line>267</line>
+          <option name="timeStamp" value="56" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>557</line>
-          <option name="timeStamp" value="45" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>573</line>
-          <option name="timeStamp" value="48" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>289</line>
-          <option name="timeStamp" value="49" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>320</line>
-          <option name="timeStamp" value="50" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/pytuxkart/ppo.py</url>
-          <line>461</line>
-          <option name="timeStamp" value="51" />
+          <line>575</line>
+          <option name="timeStamp" value="57" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Reinforcement_Learning_for_PyTuxKart$planner.coverage" NAME="planner Coverage Results" MODIFIED="1638255071128" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pytuxkart" />
-    <SUITE FILE_PATH="coverage/Reinforcement_Learning_for_PyTuxKart$actcri_agent_py.coverage" NAME="actcri_agent.py Coverage Results" MODIFIED="1638691102311" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pytuxkart" />
-    <SUITE FILE_PATH="coverage/Reinforcement_Learning_for_PyTuxKart$ppo_py.coverage" NAME="ppo.py Coverage Results" MODIFIED="1638699561417" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pytuxkart" />
     <SUITE FILE_PATH="coverage/Reinforcement_Learning_for_PyTuxKart$actcri_agent_py_verbose.coverage" NAME="actcri_agent.py verbose Coverage Results" MODIFIED="1638657351327" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pytuxkart" />
+    <SUITE FILE_PATH="coverage/Reinforcement_Learning_for_PyTuxKart$actcri_agent_py.coverage" NAME="actcri_agent.py Coverage Results" MODIFIED="1638682990404" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pytuxkart" />
+    <SUITE FILE_PATH="coverage/Reinforcement_Learning_for_PyTuxKart$ppo_py.coverage" NAME="ppo.py Coverage Results" MODIFIED="1638774792216" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pytuxkart" />
   </component>
 </project>
