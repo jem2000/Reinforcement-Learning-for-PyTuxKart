@@ -21,14 +21,17 @@ RESCUE_SPEED = 0.5
 RESCUE_TIMEOUT = 10
 TRACK_OFFSET = 15
 
+starting_frames = 0
+reset_frames = 0
+
 ON_COLAB = os.environ.get('ON_COLAB', False)
 if ON_COLAB:
-    from .controller import rl_control
+    from .controller import rl_control, control
     from .pytux_utils import DeepRL
     from . import utils
 
 else:
-    from controller import rl_control
+    from controller import rl_control, control
     from pytux_utils import DeepRL
     import utils
 
@@ -150,6 +153,9 @@ class A2CAgent(DeepRL):
         done = False
         self.env.k.step(action)
 
+        global starting_frames
+        starting_frames += 1
+
         state.update()
         track.update()
         kart = state.players[0].kart
@@ -173,11 +179,12 @@ class A2CAgent(DeepRL):
                 print('end_track restarted ****************')
             restarted = True
             done = True
+            starting_frames = 0
 
         cur_loc = kart.distance_down_track
 
         # print('distance down track: ', cur_loc)
-        speed_threshold = 0.5
+        speed_threshold = 1
         abs_aim = abs(aim_point[0])
         loc_change = (cur_loc - prev_loc) if abs(cur_loc - prev_loc) < 2.5 else 0
         forward_distance = cur_loc - prev_loc
@@ -185,7 +192,7 @@ class A2CAgent(DeepRL):
         # print('off: ', abs_aim)
         # print('loc: ', cur_loc - prev_loc, 'cur_loc: ', cur_loc, 'prev_loc', prev_loc)
         reward_off = - abs_aim * 30  # range (-25, 0)
-        reward_speed = forward_distance * 2 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 10  # range(-5, 0)
+        reward_speed = forward_distance * 10 if (loc_change - speed_threshold) > 0 else (loc_change - speed_threshold) * 10  # range(-5, 0)
         reward = reward_speed + reward_off
 
         if self.total_step - self.restart_time < 5:
@@ -232,6 +239,8 @@ class A2CAgent(DeepRL):
         return policy_loss.item(), value_loss.item()
 
     def train(self, num_frames: int, plotting_interval: int = 2500):
+        global starting_frames
+        global reset_frames
         self.is_test = False
 
         actor_losses, critic_losses, scores = [], [], []
@@ -255,18 +264,33 @@ class A2CAgent(DeepRL):
 
             steer = self.select_action(obs)
             accel = self.select_action(obs)
-            action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
+            if starting_frames < TRACK_OFFSET:
+                # print("Using controller")
+                action = control(aim_point, vel)
+            else:
+                # print("Using RL")
+                # action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
+                action = rl_control(aim_point, vel, ['steer'], [steer])
+
+            print("steer: ", action.steer)
+            print("accel", action.acceleration)
 
             rescue = False
             # print("vel is ", vel, ", total step is ", self.total_step, ", last rescue is ", last_rescue)
-            if vel < RESCUE_SPEED and self.total_step - last_rescue > RESCUE_TIMEOUT:
+            if vel < RESCUE_SPEED:
+                reset_frames += 1
+            else:
+                reset_frames = 0
+                # print("total_step is", self.total_step)
+            if reset_frames > RESCUE_TIMEOUT and self.total_step - last_rescue > RESCUE_TIMEOUT:
                 last_rescue = self.total_step
                 action.rescue = True
                 rescue = True
+                starting_frames = 0
 
             prev_loc, reward, restarted, done = self.step(state, track, prev_loc, action, aim_point)
             if rescue:
-                reward = -15
+                reward = -100
 
             next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
             next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel, kart.distance_down_track))
@@ -293,6 +317,7 @@ class A2CAgent(DeepRL):
                 state.update()
                 track.update()
                 prev_loc = 0
+                starting_frames = 0
 
             if done:
                 best_score = score if score > best_score else best_score
@@ -319,6 +344,8 @@ class A2CAgent(DeepRL):
 
     def test(self, max_frame):
         """Test the agent."""
+        global starting_frames
+        global reset_frames
         self.is_test = True
         print('Testing')
 
@@ -346,19 +373,28 @@ class A2CAgent(DeepRL):
 
             steer = self.select_action(obs, test_actor)
             accel = self.select_action(obs, test_actor)
-            action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
+            if starting_frames < TRACK_OFFSET:
+                action = control(aim_point, vel)
+            else:
+                action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
             prev_loc, reward, restarted, done = self.step(state, track, prev_loc, action, aim_point)
-
+            print("steer: ", action.steer)
+            print("accel", action.acceleration)
             next_aim_point, next_vel, aim_point_world, proj, view, kart = self.update_kart(track, state)
             # next_obs = np.array((next_aim_point[0], next_aim_point[1], next_vel, kart.distance_down_track))
 
             score += reward
 
-            print("vel is ", vel, ", cur_frame is ", cur_frame, ", last rescue is ", last_rescue)
-            if vel < RESCUE_SPEED and cur_frame - last_rescue > RESCUE_TIMEOUT:
-                # print('rescue', 'cur frame: ', cur_frame, ' last rescue: ', last_rescue)
+            # print("vel is ", vel, ", cur_frame is ", cur_frame, ", last rescue is ", last_rescue)
+            if vel < RESCUE_SPEED:
+                reset_frames += 1
+            else:
+                reset_frames = 0
+            if reset_frames > RESCUE_TIMEOUT and cur_frame - last_rescue > RESCUE_TIMEOUT:
                 last_rescue = cur_frame
                 action.rescue = True
+                rescue = True
+                starting_frames = 0
 
             # if episode ends
             if restarted:
@@ -368,6 +404,7 @@ class A2CAgent(DeepRL):
                 count += 1
                 prev_loc = 0
                 cur_frame = 0
+                starting_frames = 0
 
             if done:
                 best_score = score if score > best_score else best_score
