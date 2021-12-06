@@ -107,10 +107,14 @@ class A2CAgent(DeepRL):
                  screen_width=128, screen_height=96):
         super().__init__(pytux, track, gamma, entropy_weight)
         self.actor = Actor(self.obs_dim, self.action_dim).to(self.device)
+        self.actor2 = Actor(self.obs_dim, self.action_dim).to(self.device)
         if continue_training:
             self.actor.load_state_dict(
-                load(path.join(path.dirname(path.abspath(__file__)), 'actor.th'), map_location='cpu'))
+                load(path.join(path.dirname(path.abspath(__file__)), 'A2C.th'), map_location='cpu'))
+            self.actor2.load_state_dict(
+                load(path.join(path.dirname(path.abspath(__file__)), 'A2C2.th'), map_location='cpu'))
         self.critic = Critic(self.obs_dim).to(self.device)
+        self.critic2 = Critic(self.obs_dim).to(self.device)
 
         # optimizer
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=1e-4)
@@ -146,7 +150,7 @@ class A2CAgent(DeepRL):
             log_prob = dist.log_prob(selected_action).sum(dim=-1)
             self.transition = [obs, log_prob]
 
-        return selected_action.cpu().detach().numpy()
+        return selected_action.clamp(-1.0, 1.0).cpu().detach().numpy()
 
     def step(self, state, track, prev_loc, action, aim_point):
         restarted = False
@@ -197,6 +201,8 @@ class A2CAgent(DeepRL):
 
         if self.total_step - self.restart_time < 5:
             reward = -15
+        if restarted:
+            reward -= 100
         return cur_loc, reward / 2, restarted, done
 
     def update_model(self) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -244,7 +250,9 @@ class A2CAgent(DeepRL):
         self.is_test = False
 
         actor_losses, critic_losses, scores = [], [], []
+        actor_losses2, critic_losses2 = [], []
         actor_epoch_losses, critic_epoch_losses = [], []
+        actor_epoch_losses2, critic_epoch_losses2 = [], []
         score = 0
         prev_loc = 0
         best_score = -9999999999999
@@ -264,13 +272,21 @@ class A2CAgent(DeepRL):
             steer = self.select_action(obs)
 
             accel = self.select_action(obs)
+
+            if aim_point[0] > 0 and steer < 0:
+                steer = -steer
+            elif aim_point[0] < 0 and steer > 0:
+                steer = -steer
+
+            accel = ((accel + 1) / 2.0) + 0.01
+
             if starting_frames < TRACK_OFFSET:
                 # print("Using controller")
                 action = control(aim_point, vel)
             else:
                 # print("Using RL")
-                # action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
-                action = rl_control(aim_point, vel, ['steer'], [steer])
+                action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
+                # action = rl_control(aim_point, vel, ['steer'], [steer])
 
             print("steer: ", action.steer)
             print("accel", action.acceleration)
@@ -298,14 +314,20 @@ class A2CAgent(DeepRL):
             self.transition.extend([next_obs, reward, done])
 
             actor_loss, critic_loss = self.update_model()
+            actor_loss2, critic_loss2 = self.update_model()
 
             actor_epoch_losses.append(actor_loss)
             critic_epoch_losses.append(critic_loss)
+            actor_epoch_losses2.append(actor_loss)
+            critic_epoch_losses2.append(critic_loss)
 
             if self.total_step % 200 == 0:
                 actor_losses.append(np.mean(actor_epoch_losses))
                 critic_losses.append(np.mean(critic_epoch_losses))
                 actor_epoch_losses, critic_epoch_losses = [], []
+                actor_losses2.append(np.mean(actor_epoch_losses2))
+                critic_losses2.append(np.mean(critic_epoch_losses2))
+                actor_epoch_losses2, critic_epoch_losses2 = [], []
 
             score += reward
 
@@ -335,6 +357,7 @@ class A2CAgent(DeepRL):
             if self.total_step % plotting_interval == 0:
                 # best_score = -9999999999999
                 self.save_model(self.actor, Actor, 'A2C.th')
+                self.save_model(self.actor, Actor, 'A2C2.th')
                 if ON_COLAB:
                     self._plot(self.total_step, best_score, actor_losses, critic_losses)
                 elif not self.verbose:
@@ -373,6 +396,12 @@ class A2CAgent(DeepRL):
 
             steer = self.select_action(obs, test_actor)
             accel = self.select_action(obs, test_actor)
+
+            if aim_point[0] > 0 and steer < 0:
+                steer = -steer
+            elif aim_point[0] < 0 and steer > 0:
+                steer = -steer
+
             if starting_frames < TRACK_OFFSET:
                 action = control(aim_point, vel)
             else:
