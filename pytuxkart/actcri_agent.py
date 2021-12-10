@@ -148,7 +148,7 @@ class A2CAgent(DeepRL):
             log_prob = dist.log_prob(selected_action).sum(dim=-1)
             self.transition = [obs, log_prob]
 
-        return selected_action.cpu().detach().numpy()
+        return selected_action.clamp(-1.0, 1.0).cpu().detach().numpy()
 
     def step(self, state, track, prev_loc, action, aim_point):
         restarted = False
