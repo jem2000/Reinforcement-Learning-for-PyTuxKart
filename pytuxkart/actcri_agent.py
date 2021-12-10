@@ -111,7 +111,7 @@ class A2CAgent(DeepRL):
         self.actor = Actor(self.obs_dim, self.action_dim).to(self.device)
         if continue_training:
             self.actor.load_state_dict(
-                load(path.join(path.dirname(path.abspath(__file__)), 'actor.th'), map_location='cpu'))
+                load(path.join(path.dirname(path.abspath(__file__)), 'A2C.th'), map_location='cpu'))
         self.critic = Critic(self.obs_dim).to(self.device)
 
         # optimizer
@@ -265,14 +265,21 @@ class A2CAgent(DeepRL):
             obs = np.array((aim_point[0], aim_point[1], vel, kart.distance_down_track))
             steer = self.select_action(obs)
 
+            if aim_point[0] > 0 and steer < 0:
+                steer = -steer
+            elif aim_point[0] < 0 and steer > 0:
+                steer = -steer
+
             accel = self.select_action(obs)
+            accel = ((accel + 1) / 2) + 0.01
+
             if starting_frames < TRACK_OFFSET:
                 # print("Using controller")
                 action = control(aim_point, vel)
             else:
                 # print("Using RL")
-                # action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
-                action = rl_control(aim_point, vel, ['steer'], [steer])
+                action = rl_control(aim_point, vel, ['steer', 'acceleration'], [steer, accel])
+                # action = rl_control(aim_point, vel, ['steer'], [steer])
 
             print("steer: ", action.steer)
             print("accel", action.acceleration)
@@ -374,7 +381,15 @@ class A2CAgent(DeepRL):
             obs = np.array((aim_point[0], aim_point[1], vel, kart.distance_down_track))
 
             steer = self.select_action(obs, test_actor)
+
+            if aim_point[0] > 0 and steer < 0:
+                steer = -steer
+            elif aim_point[0] < 0 and steer > 0:
+                steer = -steer
+
             accel = self.select_action(obs, test_actor)
+            accel = ((accel + 1) / 2) + 0.01
+
             if starting_frames < TRACK_OFFSET:
                 action = control(aim_point, vel)
             else:
