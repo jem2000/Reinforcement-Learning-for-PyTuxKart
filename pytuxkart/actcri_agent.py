@@ -29,11 +29,13 @@ if ON_COLAB:
     from .controller import rl_control, control
     from .pytux_utils import DeepRL
     from . import utils
+    from . import planner
 
 else:
     from controller import rl_control, control
     from pytux_utils import DeepRL
     import utils
+    import planner
 
 
 def initialize_uniformly(layer: nn.Linear, init_w: float = 3e-3):
@@ -103,9 +105,9 @@ class A2CAgent(DeepRL):
         is_test (bool): flag to show the current mode (train / test)
     """
 
-    def __init__(self, pytux, track, gamma: float, entropy_weight: float, verbose=False, continue_training=False,
+    def __init__(self, pytux, track, planner: None, gamma: float, entropy_weight: float, verbose=False, continue_training=False,
                  screen_width=128, screen_height=96):
-        super().__init__(pytux, track, gamma, entropy_weight)
+        super().__init__(pytux, track, planner, gamma, entropy_weight)
         self.actor = Actor(self.obs_dim, self.action_dim).to(self.device)
         if continue_training:
             self.actor.load_state_dict(
@@ -326,7 +328,7 @@ class A2CAgent(DeepRL):
 
             if self.verbose:
                 title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(self.total_step, score, best_score)
-                DeepRL.verbose(self, title, kart, ax, proj, view, aim_point_world)
+                DeepRL.verbose(self, title, kart, ax, proj, view, aim_point_world, track, next_aim_point)
                 print('observation: ', obs)
                 print('steering: ', steer)
                 print('time frame: ', self.total_step)
@@ -453,7 +455,15 @@ def main(pytux, track, verbose=False, test=False, continue_training=False):
     gamma = 0.9
     entropy_weight = 1e-2
 
-    agent = A2CAgent(pytux, track, gamma, entropy_weight, verbose=verbose, continue_training=continue_training)
+    agent = A2CAgent(
+        pytux=pytux,
+        track=track,
+        gamma=gamma,
+        planner=planner.load_model().eval(),
+        entropy_weight=entropy_weight,
+        verbose=verbose,
+        continue_training=continue_training
+    )
     if test:
         agent.test(num_frames)
     else:
@@ -479,6 +489,7 @@ if __name__ == '__main__':
     agent = A2CAgent(
         pytux=pytux,
         track=args.track,
+        planner=planner.load_model().eval(),
         gamma=gamma,
         entropy_weight=entropy_weight,
         verbose=args.verbose,

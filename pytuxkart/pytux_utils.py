@@ -18,19 +18,20 @@ TRACK_OFFSET = 15
 DATASET_PATH = 'drive_data'
 
 ON_COLAB = os.environ.get('ON_COLAB', False)
-if ON_COLAB:
-    from . import dense_transforms
-else:
-    import dense_transforms
+# if ON_COLAB:
+#     from . import planner
+# else:
+#     import planner
 
 
 class DeepRL:
-    def __init__(self, pytux, track, gamma: float, entropy_weight: float):
+    def __init__(self, pytux, track, planner: None, gamma: float, entropy_weight: float):
         """Initialize."""
         self.env = pytux
         self.track = track
         self.gamma = gamma
         self.entropy_weight = entropy_weight
+        self.planner = planner
 
         # device: cpu / gpu
         self.device = torch.device(
@@ -39,7 +40,7 @@ class DeepRL:
         self.obs_dim = 4
         self.action_dim = 1
 
-    def verbose(self, title, kart, ax, proj, view, aim_point_world):
+    def verbose(self, title, kart, ax, proj, view, aim_point_world, track: None, aim_point_image: None):
         ax.clear()
         ax.set_title(title)
         ax.imshow(self.env.k.render_data[0].image)
@@ -48,6 +49,9 @@ class DeepRL:
             plt.Circle(WH2 * (1 + self.env.to_image(kart.location, proj, view)), 2, ec='b', fill=False, lw=1.5))
         ax.add_artist(
             plt.Circle(WH2 * (1 + self.env.to_image(aim_point_world, proj, view)), 2, ec='r', fill=False, lw=1.5))
+        if self.planner:
+            ap = self.env.point_on_track(kart.distance_down_track + TRACK_OFFSET, track)
+            ax.add_artist(plt.Circle(WH2*(1+aim_point_image), 2, ec='g', fill=False, lw=1.5))
         plt.pause(1e-3)
 
     def init_track(self):
@@ -83,6 +87,11 @@ class DeepRL:
 
         aim_point_world = self.env.point_on_track(cur_loc+TRACK_OFFSET, track)
         aim_point_image = self.env.to_image(aim_point_world, proj, view)
+
+        if self.planner:
+            image = np.array(self.env.k.render_data[0].image)
+            aim_point_image = self.planner(TF.to_tensor(image)[None]).squeeze(0).cpu().detach().numpy()
+
         current_vel = (np.linalg.norm(kart.velocity))
 
         return aim_point_image, current_vel, aim_point_world, proj, view, kart

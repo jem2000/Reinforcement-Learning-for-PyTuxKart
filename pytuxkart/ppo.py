@@ -30,13 +30,14 @@ if ON_COLAB:
     from .controller import rl_control
     from .controller import control
     from . import utils
+    from . import planner
     from .pytux_utils import DeepRL
 else:
     from controller import rl_control
     from controller import control
     import utils
+    import planner
     from pytux_utils import DeepRL
-
     from IPython.display import HTML, display
 
 
@@ -204,10 +205,10 @@ class PPOAgent(DeepRL):
         is_test (bool): flag to show the current mode (train / test)
     """
 
-    def __init__(self, pytux, track, batch_size: int, gamma: float, tau: float, epsilon: float, epoch: int,
-                 rollout_len: int, entropy_weight: float, verbose=False, continue_training=False):
+    def __init__(self, pytux, track, batch_size: int, planner: None, gamma: float, tau: float, epsilon: float,
+    epoch: int, rollout_len: int, entropy_weight: float, verbose=False, continue_training=False):
         """Initialize."""
-        super().__init__(pytux, track, gamma, entropy_weight)
+        super().__init__(pytux, track, planner, gamma, entropy_weight)
         self.tau = tau
         self.batch_size = batch_size
         self.epsilon = epsilon
@@ -501,7 +502,7 @@ class PPOAgent(DeepRL):
                 if self.verbose:
                     title = "Time frame: {}; Score: {:.2f}; Best score: {:.2f}".format(self.total_step, score[0][0],
                                                                                        best_score)
-                    DeepRL.verbose(self, title, kart, ax, proj, view, aim_point_world)
+                    DeepRL.verbose(self, title, kart, ax, proj, view, aim_point_world, track, next_aim_point)
                     # print('observation: ', obs)
                     # print('steering: ', steer)
                     # print('time frame: ', self.total_step)
@@ -674,6 +675,7 @@ def main(pytux, track, verbose=False, test=False, continue_training=False):
     agent = PPOAgent(
         pytux=pytux,
         track=track,
+        planner=planner.load_model().eval(),
         gamma=gamma,
         entropy_weight=entropy_weight,
         verbose=verbose,
@@ -710,6 +712,7 @@ if __name__ == '__main__':
     agent = PPOAgent(
         pytux=pytux,
         track=args.track,
+        planner=planner.load_model().eval(),
         gamma=gamma,
         entropy_weight=entropy_weight,
         verbose=args.verbose,
