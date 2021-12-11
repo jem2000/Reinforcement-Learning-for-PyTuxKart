@@ -31,11 +31,13 @@ Jupyter Notebook: [colab](https://colab.research.google.com/github/MrSyee/pg-is-
 - scotland
 
 ### Todo
-- [ ] Organize the code
+- [ ] Organize the code (PPO and A2C have too much redundant code)
 - [ ] Need upgrade reward, current reward function isn't good enough
 - [ ] Max score should display max traveled distance
-- [ ] Off track != done, the game shouldn't end when off track
-- [ ] Actor critics should be positive
+- [ ] When kart is off the track, rescue the kart to a random place on a random kart might help training
+- [ ] Add a second aim_point and increase the NN in_dim to 6 (i.e. [aim_point_1[0], aim_point_1[1], aim_point_2[0], aim_point_2[1], speed, dist_on_track])
+- [x] Off track != done, the game shouldn't end when off track
+- [x] Actor critics should be positive
 - [x] Fixed aim point could not display
 - [x] Enabled argument parsing feature
 - [x] Need a test function that can run with pre-trained Actor weights
